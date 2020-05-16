@@ -1,0 +1,9 @@
+node_modules
+test
+dist/test
+scripts
+tsconfig.json
+.nvmrc
+Makefile
+.DS_Store
+*.tgz

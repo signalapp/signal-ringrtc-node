@@ -1,0 +1,29 @@
+{
+  "name": "ringrtc",
+  "version": "2.0.1",
+  "description": "Signal Messenger voice and video calling library.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist/index.d.ts"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "clean": "rimraf dist",
+    "test": "electron-mocha --recursive dist/test"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {},
+  "devDependencies": {
+    "@types/chai": "4.2.7",
+    "@types/mocha": "5.2.7",
+    "@types/node": "13.1.8",
+    "chai": "4.2.0",
+    "electron": "8.2.5",
+    "electron-mocha": "8.1.1",
+    "mocha": "7.1.1",
+    "rimraf": "3.0.1",
+    "typescript": "3.7.4"
+  }
+}
