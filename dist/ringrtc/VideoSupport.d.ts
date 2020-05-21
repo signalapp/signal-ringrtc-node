@@ -6,25 +6,29 @@ export declare class GumVideoCapturer {
     private readonly maxWidth;
     private readonly maxHeight;
     private readonly maxFramerate;
+    private readonly localPreview;
+    private capturing;
     private call?;
-    private localPreview;
     private mediaStream?;
     private canvas?;
     private canvasContext?;
     private intervalId?;
-    constructor(maxWidth: number, maxHeight: number, maxFramerate: number);
-    enableLocalPreview(localPreview: Ref<HTMLVideoElement>): void;
-    enable(call: Call, localPreview: Ref<HTMLVideoElement>): void;
+    constructor(maxWidth: number, maxHeight: number, maxFramerate: number, localPreview: Ref<HTMLVideoElement>);
+    enableCapture(): void;
+    enableCaptureAndSend(call: Call): void;
     disable(): void;
-    private openCamera;
-    private setLocalPreviewMediaStream;
+    private startCapturing;
+    private stopCapturing;
+    private startSending;
+    private stopSending;
+    private setLocalPreviewSourceObject;
     private captureAndSendOneVideoFrame;
 }
 export declare class CanvasVideoRenderer {
+    private readonly canvas;
     private call?;
-    private canvas;
-    constructor();
-    enable(call: Call, canvas: Ref<HTMLCanvasElement>): void;
+    constructor(canvas: Ref<HTMLCanvasElement>);
+    enable(call: Call): void;
     disable(): void;
     private renderBlack;
     private renderVideoFrame;

@@ -33,30 +33,54 @@ interface IceServer {
     password?: string;
     urls: Array<string>;
 }
+interface VideoCapturer {
+    enableCapture(): void;
+    enableCaptureAndSend(call: Call): void;
+    disable(): void;
+}
+interface VideoRenderer {
+    enable(call: Call): void;
+    disable(): void;
+}
 export declare class Call {
     private readonly _callManager;
     private readonly _remoteUserId;
     callId: CallId | null;
-    private readonly _incoming;
+    private readonly _isIncoming;
+    private readonly _isVideoCall;
     settings: CallSettings | null;
     private _state;
+    private _outgoingAudioEnabled;
     private _outgoingVideoEnabled;
+    private _capturer;
+    private _remoteVideoEnabled;
+    private _renderer;
     endedReason?: string;
     sendSignaling?: (message: CallingMessage) => void;
     handleStateChanged?: () => void;
-    handleRemoteVideoEnabled?: (enabled: boolean) => void;
+    handleRemoteVideoEnabled?: () => void;
     renderVideoFrame?: (width: number, height: number, buffer: ArrayBuffer) => void;
-    constructor(callManager: CallManager, remoteUserId: UserId, callId: CallId, incoming: boolean, settings: CallSettings | null, state: CallState);
+    constructor(callManager: CallManager, remoteUserId: UserId, callId: CallId, isIncoming: boolean, isVideoCall: boolean, settings: CallSettings | null, state: CallState);
     get remoteUserId(): UserId;
-    get incoming(): boolean;
+    get isIncoming(): boolean;
+    get isVideoCall(): boolean;
     get state(): CallState;
     set state(state: CallState);
+    set capturer(capturer: VideoCapturer);
+    set renderer(renderer: VideoRenderer);
     accept(): void;
     hangup(): void;
+    get outgoingAudioEnabled(): boolean;
     set outgoingAudioEnabled(enabled: boolean);
     get outgoingVideoEnabled(): boolean;
     set outgoingVideoEnabled(enabled: boolean);
+    get remoteVideoEnabled(): boolean;
+    set remoteVideoEnabled(enabled: boolean);
     sendVideoFrame(width: number, height: number, rgbaBuffer: ArrayBuffer): void;
+    setRemoteVideoEnabledAndTriggerHandler(enabled: boolean): void;
+    private enableOrDisableCapturer;
+    private sendVideoStatus;
+    private enableOrDisableRenderer;
 }
 export declare type UserId = string;
 export declare type DeviceId = number;

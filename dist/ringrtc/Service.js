@@ -36,8 +36,8 @@ class RingRTCType {
     // Called by UX
     startOutgoingCall(remoteUserId, isVideoCall, settings) {
         const callId = null;
-        const incoming = false;
-        this.call = new Call(this.callManager, remoteUserId, callId, incoming, settings, CallState.Prering);
+        const isIncoming = false;
+        this.call = new Call(this.callManager, remoteUserId, callId, isIncoming, isVideoCall, settings, CallState.Prering);
         this.callManager.call(remoteUserId, isVideoCall);
         return this.call;
     }
@@ -52,8 +52,9 @@ class RingRTCType {
     }
     // Called by Rust
     onStartIncomingCall(remoteUserId, callId) {
-        const incoming = true;
-        const call = new Call(this.callManager, remoteUserId, callId, incoming, null, CallState.Prering);
+        const isIncoming = true;
+        const isVideoCall = false;
+        const call = new Call(this.callManager, remoteUserId, callId, isIncoming, isVideoCall, null, CallState.Prering);
         // Callback to UX not set
         const handleIncomingCall = this.handleIncomingCall;
         if (!handleIncomingCall) {
@@ -89,17 +90,6 @@ class RingRTCType {
             return;
         }
         call.state = state;
-        // Because you might have been enabled before you were accepted.
-        // We should probably do this in native code instead.
-        if (call.state === CallState.Accepted) {
-            // Silly hack to avoid deadlock.
-            // tslint:disable no-floating-promises
-            (() => __awaiter(this, void 0, void 0, function* () {
-                // tslint:disable-next-line await-promise
-                yield 0;
-                this.callManager.sendVideoStatus(call.outgoingVideoEnabled);
-            }))();
-        }
     }
     // Called by Rust
     onCallEnded(remoteUserId, reason) {
@@ -117,8 +107,9 @@ class RingRTCType {
         if (!call || call.remoteUserId !== remoteUserId) {
             return;
         }
+        call.remoteVideoEnabled = enabled;
         if (call.handleRemoteVideoEnabled) {
-            call.handleRemoteVideoEnabled(enabled);
+            call.handleRemoteVideoEnabled();
         }
     }
     renderVideoFrame(width, height, buffer) {
@@ -259,34 +250,59 @@ class RingRTCType {
 }
 exports.default = RingRTCType;
 class Call {
-    constructor(callManager, remoteUserId, callId, incoming, settings, state) {
+    constructor(callManager, remoteUserId, callId, isIncoming, isVideoCall, settings, state) {
+        this._outgoingAudioEnabled = false;
         this._outgoingVideoEnabled = false;
+        this._capturer = null;
+        this._remoteVideoEnabled = false;
+        this._renderer = null;
         this._callManager = callManager;
         this._remoteUserId = remoteUserId;
         this.callId = callId;
-        this._incoming = incoming;
+        this._isIncoming = isIncoming;
+        this._isVideoCall = isVideoCall;
         this.settings = settings;
         this._state = state;
     }
     get remoteUserId() {
         return this._remoteUserId;
     }
-    get incoming() {
-        return this._incoming;
+    get isIncoming() {
+        return this._isIncoming;
+    }
+    get isVideoCall() {
+        return this._isVideoCall;
     }
     get state() {
         return this._state;
     }
     set state(state) {
         this._state = state;
+        this.enableOrDisableCapturer();
+        this.enableOrDisableRenderer();
         if (!!this.handleStateChanged) {
             this.handleStateChanged();
         }
+    }
+    set capturer(capturer) {
+        this._capturer = capturer;
+        this.enableOrDisableCapturer();
+    }
+    set renderer(renderer) {
+        this._renderer = renderer;
     }
     accept() {
         this._callManager.accept(this.callId);
     }
     hangup() {
+        // This is a little faster than waiting for the
+        // change in call state to come back.
+        if (this._capturer) {
+            this._capturer.disable();
+        }
+        if (this._renderer) {
+            this._renderer.disable();
+        }
         // This assumes we only have one active all.
         (() => __awaiter(this, void 0, void 0, function* () {
             // This is a silly way of causing a deadlock.
@@ -295,7 +311,11 @@ class Call {
             this._callManager.hangup();
         }))();
     }
+    get outgoingAudioEnabled() {
+        return this._outgoingAudioEnabled;
+    }
     set outgoingAudioEnabled(enabled) {
+        this._outgoingAudioEnabled = enabled;
         // This assumes we only have one active all.
         (() => __awaiter(this, void 0, void 0, function* () {
             // This is a silly way of not causing a deadlock.
@@ -309,14 +329,89 @@ class Call {
     }
     set outgoingVideoEnabled(enabled) {
         this._outgoingVideoEnabled = enabled;
-        if (this.state === CallState.Accepted) {
-            // This assumes we only have one active all.
-            this._callManager.sendVideoStatus(enabled);
-        }
+        this.enableOrDisableCapturer();
+    }
+    get remoteVideoEnabled() {
+        return this._remoteVideoEnabled;
+    }
+    set remoteVideoEnabled(enabled) {
+        this._remoteVideoEnabled = enabled;
+        this.enableOrDisableRenderer();
     }
     sendVideoFrame(width, height, rgbaBuffer) {
         // This assumes we only have one active all.
         this._callManager.sendVideoFrame(width, height, rgbaBuffer);
+    }
+    setRemoteVideoEnabledAndTriggerHandler(enabled) {
+        this.remoteVideoEnabled = true;
+    }
+    enableOrDisableCapturer() {
+        if (!this._capturer) {
+            return;
+        }
+        if (!this.outgoingVideoEnabled) {
+            this._capturer.disable();
+            if (this.state == CallState.Accepted) {
+                this.sendVideoStatus(false);
+            }
+            return;
+        }
+        switch (this.state) {
+            case CallState.Prering:
+            case CallState.Ringing:
+                this._capturer.enableCapture();
+                break;
+            case CallState.Accepted:
+                this._capturer.enableCaptureAndSend(this);
+                this.sendVideoStatus(true);
+                break;
+            case CallState.Reconnecting:
+                this._capturer.enableCaptureAndSend(this);
+                // Don't send status until we're reconnected.
+                break;
+            case CallState.Ended:
+                this._capturer.disable();
+                break;
+            default:
+        }
+    }
+    sendVideoStatus(enabled) {
+        // tslint:disable no-floating-promises
+        (() => __awaiter(this, void 0, void 0, function* () {
+            // This is a silly way of causing a deadlock.
+            // tslint:disable-next-line await-promise
+            yield 0;
+            try {
+                this._callManager.sendVideoStatus(enabled);
+            }
+            catch (_a) {
+                // We may not have an active connection any more.
+                // In which case it doesn't matter
+            }
+        }))();
+    }
+    enableOrDisableRenderer() {
+        if (!this._renderer) {
+            return;
+        }
+        if (!this.remoteVideoEnabled) {
+            this._renderer.disable();
+            return;
+        }
+        switch (this.state) {
+            case CallState.Prering:
+            case CallState.Ringing:
+                this._renderer.disable();
+                break;
+            case CallState.Accepted:
+            case CallState.Reconnecting:
+                this._renderer.enable(this);
+                break;
+            case CallState.Ended:
+                this._renderer.disable();
+                break;
+            default:
+        }
     }
 }
 exports.Call = Call;

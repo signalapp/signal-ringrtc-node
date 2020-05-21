@@ -16,45 +16,32 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 class GumVideoCapturer {
-    constructor(maxWidth, maxHeight, maxFramerate) {
+    constructor(maxWidth, maxHeight, maxFramerate, localPreview) {
         this.maxWidth = maxWidth;
         this.maxHeight = maxHeight;
         this.maxFramerate = maxFramerate;
-        this.localPreview = { current: null };
-    }
-    // Enable without sending
-    enableLocalPreview(localPreview) {
         this.localPreview = localPreview;
-        // tslint:disable no-floating-promises
-        this.openCamera();
+        this.capturing = false;
     }
-    enable(call, localPreview) {
-        this.enableLocalPreview(localPreview);
-        this.call = call;
-        this.canvas = new OffscreenCanvas(this.maxWidth, this.maxHeight);
-        this.canvasContext = this.canvas.getContext('2d') || undefined;
-        const interval = 1000 / this.maxFramerate;
-        this.intervalId = setInterval(this.captureAndSendOneVideoFrame.bind(this), interval);
+    enableCapture() {
+        // tslint:disable no-floating-promises
+        this.startCapturing();
+    }
+    enableCaptureAndSend(call) {
+        // tslint:disable no-floating-promises
+        this.startCapturing();
+        this.startSending(call);
     }
     disable() {
-        if (!!this.localPreview.current && !!this.localPreview.current.srcObject) {
-            const mediaStream = this.localPreview.current.srcObject;
-            for (const track of mediaStream.getVideoTracks()) {
-                // Make the light turn off faster.
-                track.stop();
-            }
-            this.localPreview.current.srcObject = null;
-        }
-        this.call = undefined;
-        this.localPreview = { current: null };
-        this.canvas = undefined;
-        this.canvasContext = undefined;
-        if (!!this.intervalId) {
-            clearInterval(this.intervalId);
-        }
+        this.stopCapturing();
+        this.stopSending();
     }
-    openCamera() {
+    startCapturing() {
         return __awaiter(this, void 0, void 0, function* () {
+            if (this.capturing) {
+                return;
+            }
+            this.capturing = true;
             try {
                 const mediaStream = yield window.navigator.mediaDevices.getUserMedia({
                     audio: false,
@@ -70,23 +57,64 @@ class GumVideoCapturer {
                         },
                     },
                 });
-                // console.log(`Got mediaStream from getUserMedia: ${mediaStream}`);
+                // We could have been disabled between when we requested the stream
+                // and when we got it.
+                if (!this.capturing) {
+                    for (const track of mediaStream.getVideoTracks()) {
+                        // Make the light turn off faster
+                        track.stop();
+                    }
+                    return;
+                }
                 if (!!this.localPreview.current && !!mediaStream) {
-                    this.setLocalPreviewMediaStream(mediaStream);
+                    this.setLocalPreviewSourceObject(mediaStream);
                 }
                 this.mediaStream = mediaStream;
             }
-            catch (err) {
-                // console.log(`Could not capture video: ${err}`);
+            catch (_a) {
+                // We couldn't open the camera.  Oh well.
             }
         });
     }
-    setLocalPreviewMediaStream(mediaStream) {
+    stopCapturing() {
+        if (!this.capturing) {
+            return;
+        }
+        this.capturing = false;
+        if (!!this.mediaStream) {
+            for (const track of this.mediaStream.getVideoTracks()) {
+                // Make the light turn off faster
+                track.stop();
+            }
+            this.mediaStream = undefined;
+        }
+        if (!!this.localPreview.current) {
+            this.localPreview.current.srcObject = null;
+        }
+    }
+    startSending(call) {
+        if (this.call === call) {
+            return;
+        }
+        this.call = call;
+        this.canvas = new OffscreenCanvas(this.maxWidth, this.maxHeight);
+        this.canvasContext = this.canvas.getContext('2d') || undefined;
+        const interval = 1000 / this.maxFramerate;
+        this.intervalId = setInterval(this.captureAndSendOneVideoFrame.bind(this), interval);
+    }
+    stopSending() {
+        this.call = undefined;
+        this.canvas = undefined;
+        this.canvasContext = undefined;
+        if (!!this.intervalId) {
+            clearInterval(this.intervalId);
+        }
+    }
+    setLocalPreviewSourceObject(mediaStream) {
         const localPreview = this.localPreview.current;
         if (!localPreview) {
             return;
         }
-        //console.log(`capturer.localPreview.current.srcObject = ${mediaStream}`);
         localPreview.srcObject = mediaStream;
         // I don't know why this is necessary
         if (localPreview.width === 0) {
@@ -101,7 +129,7 @@ class GumVideoCapturer {
             return;
         }
         if (!this.localPreview.current.srcObject && !!this.mediaStream) {
-            this.setLocalPreviewMediaStream(this.mediaStream);
+            this.setLocalPreviewSourceObject(this.mediaStream);
         }
         if (!this.canvas || !this.canvasContext || !this.call) {
             return;
@@ -117,17 +145,18 @@ class GumVideoCapturer {
 }
 exports.GumVideoCapturer = GumVideoCapturer;
 class CanvasVideoRenderer {
-    constructor() {
-        this.canvas = { current: null };
-    }
-    enable(call, canvas) {
-        this.call = call;
+    constructor(canvas) {
         this.canvas = canvas;
+    }
+    enable(call) {
+        if (this.call === call) {
+            return;
+        }
+        this.call = call;
         this.call.renderVideoFrame = this.renderVideoFrame.bind(this);
     }
     disable() {
         this.renderBlack();
-        this.canvas = { current: null };
         if (!!this.call) {
             this.call.renderVideoFrame = undefined;
         }
