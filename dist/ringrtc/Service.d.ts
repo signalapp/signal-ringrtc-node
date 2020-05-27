@@ -7,7 +7,7 @@ export default class RingRTCType {
     private pollEvery;
     startOutgoingCall(remoteUserId: UserId, isVideoCall: boolean, settings: CallSettings): Call;
     onStartOutgoingCall(remoteUserId: UserId, callId: CallId): void;
-    onStartIncomingCall(remoteUserId: UserId, callId: CallId): void;
+    onStartIncomingCall(remoteUserId: UserId, callId: CallId, isVideoCall: boolean): void;
     private proceed;
     onCallState(remoteUserId: UserId, state: CallState): void;
     onCallEnded(remoteUserId: UserId, reason: string): void;
@@ -21,7 +21,7 @@ export default class RingRTCType {
     onSendBusy(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean): void;
     onLog(_message: string): void;
     private sendSignaling;
-    handleCallingMessage(remoteUserId: UserId, remoteDeviceId: DeviceId, message: CallingMessage): void;
+    handleCallingMessage(remoteUserId: UserId, remoteDeviceId: DeviceId, localDeviceId: DeviceId, timestamp: number, message: CallingMessage): void;
 }
 interface CallSettings {
     localDeviceId: DeviceId;
@@ -137,7 +137,7 @@ export interface CallManager {
     setOutgoingAudioEnabled(enabled: boolean): void;
     sendVideoStatus(enabled: boolean): void;
     sendVideoFrame(width: number, height: number, buffer: ArrayBuffer): void;
-    receivedOffer(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, offerType: OfferType, remoteSupportsMultiRing: boolean, sdp: string): void;
+    receivedOffer(remoteUserId: UserId, remoteDeviceId: DeviceId, timestamp: number, callId: CallId, offerType: OfferType, remoteSupportsMultiRing: boolean, sdp: string): void;
     receivedAnswer(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, remoteSupportsMultiRing: boolean, sdp: string): void;
     receivedIceCandidates(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, candiateSdps: Array<string>): void;
     receivedHangup(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, hangupType: HangupType, hangupDeviceId: DeviceId | null): void;
@@ -146,7 +146,7 @@ export interface CallManager {
 }
 export interface CallManagerCallbacks {
     onStartOutgoingCall(remoteUserId: UserId, callId: CallId): void;
-    onStartIncomingCall(remoteUserId: UserId, callId: CallId): void;
+    onStartIncomingCall(remoteUserId: UserId, callId: CallId, isVideoCall: boolean): void;
     onCallState(remoteUserId: UserId, state: CallState): void;
     onCallEnded(remoteUserId: UserId, endReason: string): void;
     onRemoteVideoEnabled(remoteUserId: UserId, enabled: boolean): void;

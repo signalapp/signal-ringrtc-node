@@ -66,9 +66,8 @@ export default class RingRTCType {
   }
 
   // Called by Rust
-  onStartIncomingCall(remoteUserId: UserId, callId: CallId): void {
+  onStartIncomingCall(remoteUserId: UserId, callId: CallId, isVideoCall: boolean): void {
     const isIncoming = true;
-    const isVideoCall = false;
     const call = new Call(
       this.callManager,
       remoteUserId,
@@ -294,9 +293,17 @@ export default class RingRTCType {
   handleCallingMessage(
     remoteUserId: UserId,
     remoteDeviceId: DeviceId,
+    localDeviceId: DeviceId,
+    timestamp: number,
     message: CallingMessage
   ): void {
     const remoteSupportsMultiRing = message.supportsMultiRing || false;
+
+    if (message.destinationDeviceId && message.destinationDeviceId !== localDeviceId) {
+      // Drop the message as it isn't for this device, handleIgnoredCall() is not needed.
+      return;
+    }
+
     if (message.offer && message.offer.callId && message.offer.sdp) {
       const callId = message.offer.callId;
       const sdp = message.offer.sdp;
@@ -313,6 +320,7 @@ export default class RingRTCType {
       this.callManager.receivedOffer(
         remoteUserId,
         remoteDeviceId,
+        timestamp,
         callId,
         offerType,
         remoteSupportsMultiRing,
@@ -340,7 +348,6 @@ export default class RingRTCType {
           candidateSdps.push(candidate.sdp);
         }
       }
-
       this.callManager.receivedIceCandidates(
         remoteUserId,
         remoteDeviceId,
@@ -348,7 +355,6 @@ export default class RingRTCType {
         candidateSdps
       );
     }
-
     if (message.hangup && message.hangup.callId) {
       const callId = message.hangup.callId;
       const hangupType = message.hangup.type || HangupType.Normal;
@@ -698,6 +704,7 @@ export interface CallManager {
   receivedOffer(
     remoteUserId: UserId,
     remoteDeviceId: DeviceId,
+    timestamp: number,
     callId: CallId,
     offerType: OfferType,
     remoteSupportsMultiRing: boolean,
@@ -733,7 +740,7 @@ export interface CallManager {
 
 export interface CallManagerCallbacks {
   onStartOutgoingCall(remoteUserId: UserId, callId: CallId): void;
-  onStartIncomingCall(remoteUserId: UserId, callId: CallId): void;
+  onStartIncomingCall(remoteUserId: UserId, callId: CallId, isVideoCall: boolean): void;
   onCallState(remoteUserId: UserId, state: CallState): void;
   onCallEnded(remoteUserId: UserId, endReason: string): void;
   onRemoteVideoEnabled(remoteUserId: UserId, enabled: boolean): void;

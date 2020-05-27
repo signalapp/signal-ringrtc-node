@@ -51,9 +51,8 @@ class RingRTCType {
         this.proceed(callId, call.settings);
     }
     // Called by Rust
-    onStartIncomingCall(remoteUserId, callId) {
+    onStartIncomingCall(remoteUserId, callId, isVideoCall) {
         const isIncoming = true;
-        const isVideoCall = false;
         const call = new Call(this.callManager, remoteUserId, callId, isIncoming, isVideoCall, null, CallState.Prering);
         // Callback to UX not set
         const handleIncomingCall = this.handleIncomingCall;
@@ -199,8 +198,12 @@ class RingRTCType {
     }
     // Called by MessageReceiver
     // tslint:disable-next-line cyclomatic-complexity
-    handleCallingMessage(remoteUserId, remoteDeviceId, message) {
+    handleCallingMessage(remoteUserId, remoteDeviceId, localDeviceId, timestamp, message) {
         const remoteSupportsMultiRing = message.supportsMultiRing || false;
+        if (message.destinationDeviceId && message.destinationDeviceId !== localDeviceId) {
+            // Drop the message as it isn't for this device, handleIgnoredCall() is not needed.
+            return;
+        }
         if (message.offer && message.offer.callId && message.offer.sdp) {
             const callId = message.offer.callId;
             const sdp = message.offer.sdp;
@@ -211,7 +214,7 @@ class RingRTCType {
                 }
                 return;
             }
-            this.callManager.receivedOffer(remoteUserId, remoteDeviceId, callId, offerType, remoteSupportsMultiRing, sdp);
+            this.callManager.receivedOffer(remoteUserId, remoteDeviceId, timestamp, callId, offerType, remoteSupportsMultiRing, sdp);
         }
         if (message.answer && message.answer.callId && message.answer.sdp) {
             const callId = message.answer.callId;
