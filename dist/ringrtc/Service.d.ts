@@ -1,7 +1,7 @@
-export default class RingRTCType {
-    callManager: CallManager;
-    call?: Call;
-    handleIncomingCall: ((call: Call) => Promise<CallSettings>) | null;
+export declare class RingRTCType {
+    private readonly callManager;
+    private _call;
+    handleIncomingCall: ((call: Call) => Promise<CallSettings | null>) | null;
     handleIgnoredCall: ((remoteUserId: UserId, reason: CallIgnoredReason) => void) | null;
     constructor();
     private pollEvery;
@@ -22,8 +22,17 @@ export default class RingRTCType {
     onLog(_message: string): void;
     private sendSignaling;
     handleCallingMessage(remoteUserId: UserId, remoteDeviceId: DeviceId, localDeviceId: DeviceId, timestamp: number, message: CallingMessage): void;
+    get call(): Call | null;
+    getCall(callId: CallId): Call | null;
+    accept(callId: CallId, asVideoCall: boolean): void;
+    decline(callId: CallId): void;
+    hangup(callId: CallId): void;
+    setOutgoingAudio(callId: CallId, enabled: boolean): void;
+    setOutgoingVideo(callId: CallId, enabled: boolean): void;
+    setVideoCapturer(callId: CallId, capturer: VideoCapturer | null): void;
+    setVideoRenderer(callId: CallId, renderer: VideoRenderer | null): void;
 }
-interface CallSettings {
+export interface CallSettings {
     localDeviceId: DeviceId;
     iceServer: IceServer;
     hideIp: boolean;
@@ -33,28 +42,28 @@ interface IceServer {
     password?: string;
     urls: Array<string>;
 }
-interface VideoCapturer {
+export interface VideoCapturer {
     enableCapture(): void;
     enableCaptureAndSend(call: Call): void;
     disable(): void;
 }
-interface VideoRenderer {
+export interface VideoRenderer {
     enable(call: Call): void;
     disable(): void;
 }
 export declare class Call {
     private readonly _callManager;
     private readonly _remoteUserId;
-    callId: CallId | null;
+    callId: CallId;
     private readonly _isIncoming;
     private readonly _isVideoCall;
     settings: CallSettings | null;
     private _state;
     private _outgoingAudioEnabled;
     private _outgoingVideoEnabled;
-    private _capturer;
     private _remoteVideoEnabled;
-    private _renderer;
+    private _videoCapturer;
+    private _videoRenderer;
     endedReason?: string;
     sendSignaling?: (message: CallingMessage) => void;
     handleStateChanged?: () => void;
@@ -66,9 +75,10 @@ export declare class Call {
     get isVideoCall(): boolean;
     get state(): CallState;
     set state(state: CallState);
-    set capturer(capturer: VideoCapturer);
-    set renderer(renderer: VideoRenderer);
+    set videoCapturer(capturer: VideoCapturer | null);
+    set videoRenderer(renderer: VideoRenderer | null);
     accept(): void;
+    decline(): void;
     hangup(): void;
     get outgoingAudioEnabled(): boolean;
     set outgoingAudioEnabled(enabled: boolean);
@@ -77,7 +87,6 @@ export declare class Call {
     get remoteVideoEnabled(): boolean;
     set remoteVideoEnabled(enabled: boolean);
     sendVideoFrame(width: number, height: number, rgbaBuffer: ArrayBuffer): void;
-    setRemoteVideoEnabledAndTriggerHandler(enabled: boolean): void;
     private enableOrDisableCapturer;
     private sendVideoStatus;
     private enableOrDisableRenderer;
@@ -130,7 +139,7 @@ export declare enum HangupType {
     Busy = 3
 }
 export interface CallManager {
-    call(remoteUserId: UserId, isVideoCall: boolean): void;
+    createOutgoingCall(remoteUserId: UserId, isVideoCall: boolean): CallId;
     proceed(callId: CallId, localDeviceId: DeviceId, iceServerUsername: string, iceServerPassword: string, iceServerUrls: Array<string>, hideIp: boolean, enableForking: boolean): void;
     accept(callId: CallId): void;
     hangup(): void;
@@ -167,6 +176,9 @@ export declare enum CallState {
     Ended = "concluded"
 }
 export declare enum CallIgnoredReason {
-    NeedsPermission = 1
+    NeedsPermission = 1,
+    UnknownError = 2,
+    UnknownCaller = 3,
+    UnverifiedCaller = 4
 }
 export {};
