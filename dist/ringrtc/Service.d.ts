@@ -10,7 +10,7 @@ export declare class RingRTCType {
     onStartIncomingCall(remoteUserId: UserId, callId: CallId, isVideoCall: boolean): void;
     private proceed;
     onCallState(remoteUserId: UserId, state: CallState): void;
-    onCallEnded(remoteUserId: UserId, reason: string): void;
+    onCallEnded(remoteUserId: UserId, reason: CallEndedReason): void;
     onRemoteVideoEnabled(remoteUserId: UserId, enabled: boolean): void;
     renderVideoFrame(width: number, height: number, buffer: ArrayBuffer): void;
     onSendOffer(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean, offerType: OfferType, sdp: string): void;
@@ -63,7 +63,7 @@ export declare class Call {
     private _remoteVideoEnabled;
     private _videoCapturer;
     private _videoRenderer;
-    endedReason?: string;
+    endedReason?: CallEndedReason;
     sendSignaling?: (message: CallingMessage) => void;
     handleStateChanged?: () => void;
     handleRemoteVideoEnabled?: () => void;
@@ -156,7 +156,7 @@ export interface CallManagerCallbacks {
     onStartOutgoingCall(remoteUserId: UserId, callId: CallId): void;
     onStartIncomingCall(remoteUserId: UserId, callId: CallId, isVideoCall: boolean): void;
     onCallState(remoteUserId: UserId, state: CallState): void;
-    onCallEnded(remoteUserId: UserId, endReason: string): void;
+    onCallEnded(remoteUserId: UserId, endedReason: CallEndedReason): void;
     onRemoteVideoEnabled(remoteUserId: UserId, enabled: boolean): void;
     renderVideoFrame(width: number, height: number, buffer: ArrayBuffer): void;
     onSendOffer(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean, mediaType: number, sdp: string): void;
@@ -179,5 +179,21 @@ export declare enum CallIgnoredReason {
     UnknownError = 2,
     UnknownCaller = 3,
     UnverifiedCaller = 4
+}
+export declare enum CallEndedReason {
+    Hangup = "Hangup",
+    Declined = "Declined",
+    Busy = "Busy",
+    Glare = "Glare",
+    ReceivedOfferExpired = "ReceivedOfferExpired",
+    ReceivedOfferWhileActive = "ReceivedOfferWhileActive",
+    SignalingFailure = "SignalingFailure",
+    ConnectionFailure = "ConnectionFailure",
+    InternalFailure = "InternalFailure",
+    Timeout = "Timeout",
+    AcceptedOnAnotherDevice = "AcceptedOnAnotherDevice",
+    DeclinedOnAnotherDevice = "DeclinedOnAnotherDevice",
+    BusyOnAnotherDevice = "BusyOnAnotherDevice",
+    CallerIsNotMultiring = "CallerIsNotMultiring"
 }
 export {};

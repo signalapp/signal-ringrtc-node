@@ -131,7 +131,7 @@ export class RingRTCType {
   }
 
   // Called by Rust
-  onCallEnded(remoteUserId: UserId, reason: string) {
+  onCallEnded(remoteUserId: UserId, reason: CallEndedReason) {
     const call = this._call;
     if (!call || call.remoteUserId !== remoteUserId) {
       return;
@@ -509,7 +509,7 @@ export class Call {
   private _remoteVideoEnabled: boolean = false;
   private _videoCapturer: VideoCapturer | null = null;
   private _videoRenderer: VideoRenderer | null = null;
-  endedReason?: string;
+  endedReason?: CallEndedReason;
 
   // These callbacks should be set by the UX code.
   sendSignaling?: (message: CallingMessage) => void;
@@ -827,7 +827,7 @@ export interface CallManagerCallbacks {
   onStartOutgoingCall(remoteUserId: UserId, callId: CallId): void;
   onStartIncomingCall(remoteUserId: UserId, callId: CallId, isVideoCall: boolean): void;
   onCallState(remoteUserId: UserId, state: CallState): void;
-  onCallEnded(remoteUserId: UserId, endReason: string): void;
+  onCallEnded(remoteUserId: UserId, endedReason: CallEndedReason): void;
   onRemoteVideoEnabled(remoteUserId: UserId, enabled: boolean): void;
   renderVideoFrame(width: number, height: number, buffer: ArrayBuffer): void;
   onSendOffer(
@@ -890,4 +890,21 @@ export enum CallIgnoredReason {
   UnknownError = 2,
   UnknownCaller = 3,
   UnverifiedCaller = 4,
+}
+
+export enum CallEndedReason {
+  Hangup = "Hangup",
+  Declined = "Declined",
+  Busy = "Busy",
+  Glare = "Glare",
+  ReceivedOfferExpired = "ReceivedOfferExpired",
+  ReceivedOfferWhileActive = "ReceivedOfferWhileActive",
+  SignalingFailure = "SignalingFailure",
+  ConnectionFailure = "ConnectionFailure",
+  InternalFailure = "InternalFailure",
+  Timeout = "Timeout",
+  AcceptedOnAnotherDevice = "AcceptedOnAnotherDevice",
+  DeclinedOnAnotherDevice = "DeclinedOnAnotherDevice",
+  BusyOnAnotherDevice = "BusyOnAnotherDevice",
+  CallerIsNotMultiring = "CallerIsNotMultiring",
 }
