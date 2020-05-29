@@ -35,8 +35,8 @@ class RingRTCType {
         }, intervalMs);
     }
     // Called by UX
-    startOutgoingCall(remoteUserId, isVideoCall, settings) {
-        const callId = this.callManager.createOutgoingCall(remoteUserId, isVideoCall);
+    startOutgoingCall(remoteUserId, isVideoCall, localDeviceId, settings) {
+        const callId = this.callManager.createOutgoingCall(remoteUserId, isVideoCall, localDeviceId);
         const isIncoming = false;
         const call = new Call(this.callManager, remoteUserId, callId, isIncoming, isVideoCall, settings, CallState.Prering);
         this._call = call;
@@ -83,7 +83,7 @@ class RingRTCType {
             // This is a silly way of causing a deadlock.
             // tslint:disable-next-line await-promise
             yield 0;
-            this.callManager.proceed(callId, settings.localDeviceId, settings.iceServer.username || '', settings.iceServer.password || '', settings.iceServer.urls, settings.hideIp, enableForking);
+            this.callManager.proceed(callId, settings.iceServer.username || '', settings.iceServer.password || '', settings.iceServer.urls, settings.hideIp, enableForking);
         }))();
     }
     // Called by Rust
@@ -218,7 +218,7 @@ class RingRTCType {
                 }
                 return;
             }
-            this.callManager.receivedOffer(remoteUserId, remoteDeviceId, timestamp, callId, offerType, remoteSupportsMultiRing, sdp);
+            this.callManager.receivedOffer(remoteUserId, remoteDeviceId, localDeviceId, timestamp, callId, offerType, remoteSupportsMultiRing, sdp);
         }
         if (message.answer && message.answer.callId && message.answer.sdp) {
             const callId = message.answer.callId;

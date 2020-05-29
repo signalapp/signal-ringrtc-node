@@ -39,9 +39,10 @@ export class RingRTCType {
   startOutgoingCall(
     remoteUserId: UserId,
     isVideoCall: boolean,
+    localDeviceId: DeviceId,
     settings: CallSettings
   ): Call {
-    const callId = this.callManager.createOutgoingCall(remoteUserId, isVideoCall);
+    const callId = this.callManager.createOutgoingCall(remoteUserId, isVideoCall, localDeviceId);
     const isIncoming = false;
     const call = new Call(
       this.callManager,
@@ -111,7 +112,6 @@ export class RingRTCType {
       await 0;
       this.callManager.proceed(
         callId,
-        settings.localDeviceId,
         settings.iceServer.username || '',
         settings.iceServer.password || '',
         settings.iceServer.urls,
@@ -325,6 +325,7 @@ export class RingRTCType {
       this.callManager.receivedOffer(
         remoteUserId,
         remoteDeviceId,
+        localDeviceId,
         timestamp,
         callId,
         offerType,
@@ -471,7 +472,6 @@ export class RingRTCType {
 }
 
 export interface CallSettings {
-  localDeviceId: DeviceId;
   iceServer: IceServer;
   hideIp: boolean;
 }
@@ -771,10 +771,9 @@ export enum HangupType {
 }
 
 export interface CallManager {
-  createOutgoingCall(remoteUserId: UserId, isVideoCall: boolean): CallId;
+  createOutgoingCall(remoteUserId: UserId, isVideoCall: boolean, localDeviceId: DeviceId): CallId;
   proceed(
     callId: CallId,
-    localDeviceId: DeviceId,
     iceServerUsername: string,
     iceServerPassword: string,
     iceServerUrls: Array<string>,
@@ -792,6 +791,7 @@ export interface CallManager {
     timestamp: number,
     callId: CallId,
     offerType: OfferType,
+    localDeviceId: DeviceId,
     remoteSupportsMultiRing: boolean,
     sdp: string
   ): void;

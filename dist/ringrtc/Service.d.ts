@@ -5,7 +5,7 @@ export declare class RingRTCType {
     handleIgnoredCall: ((remoteUserId: UserId, reason: CallIgnoredReason) => void) | null;
     constructor();
     private pollEvery;
-    startOutgoingCall(remoteUserId: UserId, isVideoCall: boolean, settings: CallSettings): Call;
+    startOutgoingCall(remoteUserId: UserId, isVideoCall: boolean, localDeviceId: DeviceId, settings: CallSettings): Call;
     onStartOutgoingCall(remoteUserId: UserId, callId: CallId): void;
     onStartIncomingCall(remoteUserId: UserId, callId: CallId, isVideoCall: boolean): void;
     private proceed;
@@ -33,7 +33,6 @@ export declare class RingRTCType {
     setVideoRenderer(callId: CallId, renderer: VideoRenderer | null): void;
 }
 export interface CallSettings {
-    localDeviceId: DeviceId;
     iceServer: IceServer;
     hideIp: boolean;
 }
@@ -139,14 +138,14 @@ export declare enum HangupType {
     Busy = 3
 }
 export interface CallManager {
-    createOutgoingCall(remoteUserId: UserId, isVideoCall: boolean): CallId;
-    proceed(callId: CallId, localDeviceId: DeviceId, iceServerUsername: string, iceServerPassword: string, iceServerUrls: Array<string>, hideIp: boolean, enableForking: boolean): void;
+    createOutgoingCall(remoteUserId: UserId, isVideoCall: boolean, localDeviceId: DeviceId): CallId;
+    proceed(callId: CallId, iceServerUsername: string, iceServerPassword: string, iceServerUrls: Array<string>, hideIp: boolean, enableForking: boolean): void;
     accept(callId: CallId): void;
     hangup(): void;
     setOutgoingAudioEnabled(enabled: boolean): void;
     sendVideoStatus(enabled: boolean): void;
     sendVideoFrame(width: number, height: number, buffer: ArrayBuffer): void;
-    receivedOffer(remoteUserId: UserId, remoteDeviceId: DeviceId, timestamp: number, callId: CallId, offerType: OfferType, remoteSupportsMultiRing: boolean, sdp: string): void;
+    receivedOffer(remoteUserId: UserId, remoteDeviceId: DeviceId, timestamp: number, callId: CallId, offerType: OfferType, localDeviceId: DeviceId, remoteSupportsMultiRing: boolean, sdp: string): void;
     receivedAnswer(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, remoteSupportsMultiRing: boolean, sdp: string): void;
     receivedIceCandidates(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, candiateSdps: Array<string>): void;
     receivedHangup(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, hangupType: HangupType, hangupDeviceId: DeviceId | null): void;
