@@ -23,7 +23,7 @@ class RingRTCType {
     constructor() {
         // Set by UX
         this.handleIncomingCall = null;
-        this.handleIgnoredCall = null;
+        this.handleNeedsPermission = null;
         this.callManager = new Native.CallManager();
         this._call = null;
         this.pollEvery(50);
@@ -213,8 +213,8 @@ class RingRTCType {
             const sdp = message.offer.sdp;
             const offerType = message.offer.type || OfferType.AudioCall;
             if (offerType === OfferType.NeedsPermission) {
-                if (!!this.handleIgnoredCall) {
-                    this.handleIgnoredCall(remoteUserId, CallIgnoredReason.NeedsPermission);
+                if (!!this.handleNeedsPermission) {
+                    this.handleNeedsPermission(remoteUserId);
                 }
                 return;
             }
@@ -346,6 +346,9 @@ class Call {
         return this._state;
     }
     set state(state) {
+        if (state == this._state) {
+            return;
+        }
         this._state = state;
         this.enableOrDisableCapturer();
         this.enableOrDisableRenderer();
@@ -522,15 +525,8 @@ var CallState;
     CallState["Ringing"] = "ringing";
     CallState["Accepted"] = "connected";
     CallState["Reconnecting"] = "connecting";
-    CallState["Ended"] = "concluded";
+    CallState["Ended"] = "ended";
 })(CallState = exports.CallState || (exports.CallState = {}));
-var CallIgnoredReason;
-(function (CallIgnoredReason) {
-    CallIgnoredReason[CallIgnoredReason["NeedsPermission"] = 1] = "NeedsPermission";
-    CallIgnoredReason[CallIgnoredReason["UnknownError"] = 2] = "UnknownError";
-    CallIgnoredReason[CallIgnoredReason["UnknownCaller"] = 3] = "UnknownCaller";
-    CallIgnoredReason[CallIgnoredReason["UnverifiedCaller"] = 4] = "UnverifiedCaller";
-})(CallIgnoredReason = exports.CallIgnoredReason || (exports.CallIgnoredReason = {}));
 var CallEndedReason;
 (function (CallEndedReason) {
     CallEndedReason["Hangup"] = "Hangup";

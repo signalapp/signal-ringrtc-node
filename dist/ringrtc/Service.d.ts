@@ -2,7 +2,7 @@ export declare class RingRTCType {
     private readonly callManager;
     private _call;
     handleIncomingCall: ((call: Call) => Promise<CallSettings | null>) | null;
-    handleIgnoredCall: ((remoteUserId: UserId, reason: CallIgnoredReason) => void) | null;
+    handleNeedsPermission: ((remoteUserId: UserId) => void) | null;
     constructor();
     private pollEvery;
     startOutgoingCall(remoteUserId: UserId, isVideoCall: boolean, localDeviceId: DeviceId, settings: CallSettings): Call;
@@ -172,13 +172,7 @@ export declare enum CallState {
     Ringing = "ringing",
     Accepted = "connected",
     Reconnecting = "connecting",
-    Ended = "concluded"
-}
-export declare enum CallIgnoredReason {
-    NeedsPermission = 1,
-    UnknownError = 2,
-    UnknownCaller = 3,
-    UnverifiedCaller = 4
+    Ended = "ended"
 }
 export declare enum CallEndedReason {
     Hangup = "Hangup",

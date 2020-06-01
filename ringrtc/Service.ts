@@ -18,9 +18,7 @@ export class RingRTCType {
 
   // Set by UX
   handleIncomingCall: ((call: Call) => Promise<CallSettings | null>) | null = null;
-  handleIgnoredCall:
-    | ((remoteUserId: UserId, reason: CallIgnoredReason) => void)
-    | null = null;
+  handleNeedsPermission: ((remoteUserId: UserId) => void) | null = null;
 
   constructor() {
     this.callManager = new Native.CallManager() as CallManager;
@@ -314,11 +312,8 @@ export class RingRTCType {
       const sdp = message.offer.sdp;
       const offerType = message.offer.type || OfferType.AudioCall;
       if (offerType === OfferType.NeedsPermission) {
-        if (!!this.handleIgnoredCall) {
-          this.handleIgnoredCall(
-            remoteUserId,
-            CallIgnoredReason.NeedsPermission
-          );
+        if (!!this.handleNeedsPermission) {
+          this.handleNeedsPermission(remoteUserId);
         }
         return;
       }
@@ -559,6 +554,9 @@ export class Call {
   }
 
   set state(state: CallState) {
+    if (state == this._state) {
+      return;
+    }
     this._state = state;
     this.enableOrDisableCapturer();
     this.enableOrDisableRenderer();
@@ -882,15 +880,9 @@ export enum CallState {
   Ringing = 'ringing',
   Accepted = 'connected',
   Reconnecting = 'connecting',
-  Ended = 'concluded',
+  Ended = 'ended',
 }
 
-export enum CallIgnoredReason {
-  NeedsPermission = 1,
-  UnknownError = 2,
-  UnknownCaller = 3,
-  UnverifiedCaller = 4,
-}
 
 export enum CallEndedReason {
   Hangup = "Hangup",
