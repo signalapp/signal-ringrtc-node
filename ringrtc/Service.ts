@@ -17,7 +17,9 @@ export class RingRTCType {
   private _call: Call | null;
 
   // Set by UX
+  handleOutgoingSignaling: ((remoteUserId: UserId, message: CallingMessage) => Promise<void>) | null = null;
   handleIncomingCall: ((call: Call) => Promise<CallSettings | null>) | null = null;
+  handleAutoEndedIncomingCallRequest: ((remoteUserId: UserId, reason: CallEndedReason) => void) | null = null;
   handleNeedsPermission: ((remoteUserId: UserId) => void) | null = null;
 
   constructor() {
@@ -132,6 +134,9 @@ export class RingRTCType {
   onCallEnded(remoteUserId: UserId, reason: CallEndedReason) {
     const call = this._call;
     if (!call || call.remoteUserId !== remoteUserId) {
+      if (this.handleAutoEndedIncomingCallRequest) {
+        this.handleAutoEndedIncomingCallRequest(remoteUserId, reason);
+      }
       return;
     }
 
@@ -275,20 +280,17 @@ export class RingRTCType {
     remoteDeviceId: DeviceId,
     broadcast: boolean,
     message: CallingMessage
-  ) {
-    const call = this._call;
-    if (!call || call.remoteUserId !== remoteUserId) {
-      return;
-    }
 
+    ) {
     message.supportsMultiRing = true;
     if (!broadcast) {
       message.destinationDeviceId = remoteDeviceId;
     }
-    if (!call.sendSignaling) {
-      return;
+
+    if (this.handleOutgoingSignaling) {
+      // TODO: Use promise to implement signaling queueing
+      this.handleOutgoingSignaling(remoteUserId, message);
     }
-    call.sendSignaling(message);
   }
 
   // Called by MessageReceiver
@@ -507,7 +509,6 @@ export class Call {
   endedReason?: CallEndedReason;
 
   // These callbacks should be set by the UX code.
-  sendSignaling?: (message: CallingMessage) => void;
   handleStateChanged?: () => void;
   handleRemoteVideoEnabled?: () => void;
 
@@ -637,6 +638,11 @@ export class Call {
   sendVideoFrame(width: number, height: number, rgbaBuffer: ArrayBuffer): void {
     // This assumes we only have one active all.
     this._callManager.sendVideoFrame(width, height, rgbaBuffer);
+  }
+
+  receiveVideoFrame(buffer: ArrayBuffer): [number, number] | undefined {
+    // This assumes we only have one active all.
+    return this._callManager.receiveVideoFrame(buffer);
   }
 
   private enableOrDisableCapturer(): void {
@@ -783,6 +789,7 @@ export interface CallManager {
   setOutgoingAudioEnabled(enabled: boolean): void;
   sendVideoStatus(enabled: boolean): void;
   sendVideoFrame(width: number, height: number, buffer: ArrayBuffer): void;
+  receiveVideoFrame(buffer: ArrayBuffer): [number, number] | undefined;
   receivedOffer(
     remoteUserId: UserId,
     remoteDeviceId: DeviceId,
@@ -827,7 +834,6 @@ export interface CallManagerCallbacks {
   onCallState(remoteUserId: UserId, state: CallState): void;
   onCallEnded(remoteUserId: UserId, endedReason: CallEndedReason): void;
   onRemoteVideoEnabled(remoteUserId: UserId, enabled: boolean): void;
-  renderVideoFrame(width: number, height: number, buffer: ArrayBuffer): void;
   onSendOffer(
     remoteUserId: UserId,
     remoteDeviceId: DeviceId,

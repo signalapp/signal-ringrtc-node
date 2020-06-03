@@ -171,10 +171,14 @@ export class GumVideoCapturer {
 
 export class CanvasVideoRenderer {
   private readonly canvas: Ref<HTMLCanvasElement>;
+  private buffer: ArrayBuffer;
   private call?: Call;
+  private rafId?: any;
 
   constructor(canvas: Ref<HTMLCanvasElement>) {
     this.canvas = canvas;
+    // The max size video frame we'll support (in RGBA)
+    this.buffer = new ArrayBuffer(1920 * 1080 * 4);
   }
 
   enable(call: Call): void {
@@ -182,15 +186,20 @@ export class CanvasVideoRenderer {
       return;
     }
     this.call = call;
-    this.call.renderVideoFrame = this.renderVideoFrame.bind(this);
+    this.requestAnimationFrameCallback();
   }
 
   disable() {
     this.renderBlack();
-    if (!!this.call) {
-      this.call.renderVideoFrame = undefined;
-    }
     this.call = undefined;
+    if (this.rafId) {
+      window.cancelAnimationFrame(this.rafId);
+    }
+  }
+
+  private requestAnimationFrameCallback() {
+    this.renderVideoFrame();
+    this.rafId = window.requestAnimationFrame(this.requestAnimationFrameCallback.bind(this));
   }
 
   private renderBlack() {
@@ -206,7 +215,10 @@ export class CanvasVideoRenderer {
     context.fillRect(0, 0, canvas.width, canvas.height);
   }
 
-  private renderVideoFrame(width: number, height: number, buffer: ArrayBuffer) {
+  private renderVideoFrame() {
+    if (!this.call) {
+      return;
+    }
     const canvas = this.canvas.current;
     if (!canvas) {
       return;
@@ -215,6 +227,13 @@ export class CanvasVideoRenderer {
     if (!context) {
       return;
     }
+
+    const frame = this.call.receiveVideoFrame(this.buffer);
+    if (!frame) {
+      return;
+    }
+    const [ width, height ] = frame;
+
     if (canvas.clientWidth <= 0 || width <= 0 ||
         canvas.clientHeight <= 0 || height <= 0) {
       return;
@@ -247,7 +266,7 @@ export class CanvasVideoRenderer {
     }
 
     context.putImageData(
-      new ImageData(new Uint8ClampedArray(buffer), width, height),
+      new ImageData(new Uint8ClampedArray(this.buffer, 0, width * height * 4), width, height),
       dx,
       dy
     );

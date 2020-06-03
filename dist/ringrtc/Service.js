@@ -22,7 +22,9 @@ const Native = require('../../build/' + os.platform() + '/libringrtc.node');
 class RingRTCType {
     constructor() {
         // Set by UX
+        this.handleOutgoingSignaling = null;
         this.handleIncomingCall = null;
+        this.handleAutoEndedIncomingCallRequest = null;
         this.handleNeedsPermission = null;
         this.callManager = new Native.CallManager();
         this._call = null;
@@ -98,6 +100,9 @@ class RingRTCType {
     onCallEnded(remoteUserId, reason) {
         const call = this._call;
         if (!call || call.remoteUserId !== remoteUserId) {
+            if (this.handleAutoEndedIncomingCallRequest) {
+                this.handleAutoEndedIncomingCallRequest(remoteUserId, reason);
+            }
             return;
         }
         // Send the end reason first because setting the state triggers
@@ -187,18 +192,14 @@ class RingRTCType {
         // console.log(`Calling: From RingRTC: '${message}'`);
     }
     sendSignaling(remoteUserId, remoteDeviceId, broadcast, message) {
-        const call = this._call;
-        if (!call || call.remoteUserId !== remoteUserId) {
-            return;
-        }
         message.supportsMultiRing = true;
         if (!broadcast) {
             message.destinationDeviceId = remoteDeviceId;
         }
-        if (!call.sendSignaling) {
-            return;
+        if (this.handleOutgoingSignaling) {
+            // TODO: Use promise to implement signaling queueing
+            this.handleOutgoingSignaling(remoteUserId, message);
         }
-        call.sendSignaling(message);
     }
     // Called by MessageReceiver
     // tslint:disable-next-line cyclomatic-complexity
@@ -417,6 +418,10 @@ class Call {
     sendVideoFrame(width, height, rgbaBuffer) {
         // This assumes we only have one active all.
         this._callManager.sendVideoFrame(width, height, rgbaBuffer);
+    }
+    receiveVideoFrame(buffer) {
+        // This assumes we only have one active all.
+        return this._callManager.receiveVideoFrame(buffer);
     }
     enableOrDisableCapturer() {
         if (!this._videoCapturer) {

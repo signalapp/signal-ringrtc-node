@@ -26,10 +26,13 @@ export declare class GumVideoCapturer {
 }
 export declare class CanvasVideoRenderer {
     private readonly canvas;
+    private buffer;
     private call?;
+    private rafId?;
     constructor(canvas: Ref<HTMLCanvasElement>);
     enable(call: Call): void;
     disable(): void;
+    private requestAnimationFrameCallback;
     private renderBlack;
     private renderVideoFrame;
 }
