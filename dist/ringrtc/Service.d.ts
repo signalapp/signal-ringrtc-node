@@ -21,7 +21,7 @@ export declare class RingRTCType {
     onSendLegacyHangup(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean, hangupType: HangupType, deviceId: DeviceId | null): void;
     onSendHangup(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean, hangupType: HangupType, deviceId: DeviceId | null): void;
     onSendBusy(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean): void;
-    onLog(_message: string): void;
+    onLog(message: string): void;
     private sendSignaling;
     handleCallingMessage(remoteUserId: UserId, remoteDeviceId: DeviceId, localDeviceId: DeviceId, timestamp: number, message: CallingMessage): void;
     get call(): Call | null;

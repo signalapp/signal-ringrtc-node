@@ -270,9 +270,9 @@ export class RingRTCType {
   }
 
   // Called by Rust
-  onLog(_message: string): void {
+  onLog(message: string): void {
     // This is really verbose.
-    // console.log(`Calling: From RingRTC: '${message}'`);
+    console.log(`RingRTC: '${message}'`);
   }
 
   private sendSignaling(

@@ -187,9 +187,9 @@ class RingRTCType {
         this.sendSignaling(remoteUserId, remoteDeviceId, broadcast, message);
     }
     // Called by Rust
-    onLog(_message) {
+    onLog(message) {
         // This is really verbose.
-        // console.log(`Calling: From RingRTC: '${message}'`);
+        console.log(`RingRTC: '${message}'`);
     }
     sendSignaling(remoteUserId, remoteDeviceId, broadcast, message) {
         message.supportsMultiRing = true;
