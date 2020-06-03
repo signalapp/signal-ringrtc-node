@@ -63,7 +63,7 @@ class RingRTCType {
         // Callback to UX not set
         const handleIncomingCall = this.handleIncomingCall;
         if (!handleIncomingCall) {
-            call.hangup();
+            call.ignore();
             return;
         }
         this._call = call;
@@ -71,7 +71,7 @@ class RingRTCType {
         (() => __awaiter(this, void 0, void 0, function* () {
             const settings = yield handleIncomingCall(call);
             if (!settings) {
-                call.hangup();
+                call.ignore();
                 return;
             }
             call.settings = settings;
@@ -282,6 +282,13 @@ class RingRTCType {
         }
         call.decline();
     }
+    ignore(callId) {
+        const call = this.getCall(callId);
+        if (!call) {
+            return;
+        }
+        call.ignore();
+    }
     hangup(callId) {
         const call = this.getCall(callId);
         if (!call) {
@@ -370,6 +377,9 @@ class Call {
     }
     decline() {
         this.hangup();
+    }
+    ignore() {
+        this._callManager.ignore(this.callId);
     }
     hangup() {
         // This is a little faster than waiting for the

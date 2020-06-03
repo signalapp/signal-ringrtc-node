@@ -86,7 +86,7 @@ export class RingRTCType {
     // Callback to UX not set
     const handleIncomingCall = this.handleIncomingCall;
     if (!handleIncomingCall) {
-      call.hangup();
+      call.ignore();
       return;
     }
     this._call = call;
@@ -95,7 +95,7 @@ export class RingRTCType {
     (async () => {
       const settings = await handleIncomingCall(call);
       if (!settings) {
-        call.hangup();
+        call.ignore();
         return;
       }
       call.settings = settings;
@@ -422,6 +422,15 @@ export class RingRTCType {
     call.decline();
   }
 
+  ignore(callId: CallId) {
+    const call = this.getCall(callId);
+    if (!call) {
+      return;
+    }
+
+    call.ignore();
+  }
+
   hangup(callId: CallId) {
     const call = this.getCall(callId);
     if (!call) {
@@ -582,6 +591,10 @@ export class Call {
 
   decline(): void {
     this.hangup();
+  }
+
+  ignore(): void {
+    this._callManager.ignore(this.callId);
   }
 
   hangup(): void {
@@ -785,6 +798,7 @@ export interface CallManager {
     enableForking: boolean
   ): void;
   accept(callId: CallId): void;
+  ignore(callId: CallId): void;
   hangup(): void;
   setOutgoingAudioEnabled(enabled: boolean): void;
   sendVideoStatus(enabled: boolean): void;

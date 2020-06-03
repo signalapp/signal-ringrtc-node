@@ -28,6 +28,7 @@ export declare class RingRTCType {
     getCall(callId: CallId): Call | null;
     accept(callId: CallId, asVideoCall: boolean): void;
     decline(callId: CallId): void;
+    ignore(callId: CallId): void;
     hangup(callId: CallId): void;
     setOutgoingAudio(callId: CallId, enabled: boolean): void;
     setOutgoingVideo(callId: CallId, enabled: boolean): void;
@@ -79,6 +80,7 @@ export declare class Call {
     set videoRenderer(renderer: VideoRenderer | null);
     accept(): void;
     decline(): void;
+    ignore(): void;
     hangup(): void;
     get outgoingAudioEnabled(): boolean;
     set outgoingAudioEnabled(enabled: boolean);
@@ -143,6 +145,7 @@ export interface CallManager {
     createOutgoingCall(remoteUserId: UserId, isVideoCall: boolean, localDeviceId: DeviceId): CallId;
     proceed(callId: CallId, iceServerUsername: string, iceServerPassword: string, iceServerUrls: Array<string>, hideIp: boolean, enableForking: boolean): void;
     accept(callId: CallId): void;
+    ignore(callId: CallId): void;
     hangup(): void;
     setOutgoingAudioEnabled(enabled: boolean): void;
     sendVideoStatus(enabled: boolean): void;
