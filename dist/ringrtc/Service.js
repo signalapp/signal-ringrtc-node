@@ -544,7 +544,8 @@ var CallState;
 })(CallState = exports.CallState || (exports.CallState = {}));
 var CallEndedReason;
 (function (CallEndedReason) {
-    CallEndedReason["Hangup"] = "Hangup";
+    CallEndedReason["LocalHangup"] = "LocalHangup";
+    CallEndedReason["RemoteHangup"] = "RemoteHangup";
     CallEndedReason["Declined"] = "Declined";
     CallEndedReason["Busy"] = "Busy";
     CallEndedReason["Glare"] = "Glare";

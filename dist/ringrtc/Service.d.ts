@@ -180,7 +180,8 @@ export declare enum CallState {
     Ended = "ended"
 }
 export declare enum CallEndedReason {
-    Hangup = "Hangup",
+    LocalHangup = "LocalHangup",
+    RemoteHangup = "RemoteHangup",
     Declined = "Declined",
     Busy = "Busy",
     Glare = "Glare",

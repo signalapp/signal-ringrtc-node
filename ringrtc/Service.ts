@@ -905,7 +905,8 @@ export enum CallState {
 
 
 export enum CallEndedReason {
-  Hangup = "Hangup",
+  LocalHangup = "LocalHangup",
+  RemoteHangup = "RemoteHangup",
   Declined = "Declined",
   Busy = "Busy",
   Glare = "Glare",
