@@ -26,6 +26,7 @@ class RingRTCType {
         this.handleIncomingCall = null;
         this.handleAutoEndedIncomingCallRequest = null;
         this.handleNeedsPermission = null;
+        this.handleLogMessage = null;
         this.callManager = new Native.CallManager();
         this._call = null;
         this.pollEvery(50);
@@ -187,9 +188,10 @@ class RingRTCType {
         this.sendSignaling(remoteUserId, remoteDeviceId, broadcast, message);
     }
     // Called by Rust
-    onLog(message) {
-        // This is really verbose.
-        console.log(`RingRTC: '${message}'`);
+    onLogMessage(level, fileName, line, message) {
+        if (this.handleLogMessage) {
+            this.handleLogMessage(level, fileName, line, message);
+        }
     }
     sendSignaling(remoteUserId, remoteDeviceId, broadcast, message) {
         message.supportsMultiRing = true;
@@ -203,7 +205,7 @@ class RingRTCType {
     }
     // Called by MessageReceiver
     // tslint:disable-next-line cyclomatic-complexity
-    handleCallingMessage(remoteUserId, remoteDeviceId, localDeviceId, timestamp, message) {
+    handleCallingMessage(remoteUserId, remoteDeviceId, localDeviceId, messageAgeSec, message) {
         const remoteSupportsMultiRing = message.supportsMultiRing || false;
         if (message.destinationDeviceId && message.destinationDeviceId !== localDeviceId) {
             // Drop the message as it isn't for this device, handleIgnoredCall() is not needed.
@@ -219,7 +221,7 @@ class RingRTCType {
                 }
                 return;
             }
-            this.callManager.receivedOffer(remoteUserId, remoteDeviceId, localDeviceId, timestamp, callId, offerType, remoteSupportsMultiRing, sdp);
+            this.callManager.receivedOffer(remoteUserId, remoteDeviceId, localDeviceId, messageAgeSec, callId, offerType, remoteSupportsMultiRing, sdp);
         }
         if (message.answer && message.answer.callId && message.answer.sdp) {
             const callId = message.answer.callId;
@@ -560,3 +562,12 @@ var CallEndedReason;
     CallEndedReason["BusyOnAnotherDevice"] = "BusyOnAnotherDevice";
     CallEndedReason["CallerIsNotMultiring"] = "CallerIsNotMultiring";
 })(CallEndedReason = exports.CallEndedReason || (exports.CallEndedReason = {}));
+var CallLogLevel;
+(function (CallLogLevel) {
+    CallLogLevel[CallLogLevel["Off"] = 0] = "Off";
+    CallLogLevel[CallLogLevel["Error"] = 1] = "Error";
+    CallLogLevel[CallLogLevel["Warn"] = 2] = "Warn";
+    CallLogLevel[CallLogLevel["Info"] = 3] = "Info";
+    CallLogLevel[CallLogLevel["Debug"] = 4] = "Debug";
+    CallLogLevel[CallLogLevel["Trace"] = 5] = "Trace";
+})(CallLogLevel = exports.CallLogLevel || (exports.CallLogLevel = {}));

@@ -21,6 +21,7 @@ export class RingRTCType {
   handleIncomingCall: ((call: Call) => Promise<CallSettings | null>) | null = null;
   handleAutoEndedIncomingCallRequest: ((remoteUserId: UserId, reason: CallEndedReason) => void) | null = null;
   handleNeedsPermission: ((remoteUserId: UserId) => void) | null = null;
+  handleLogMessage: ((level: CallLogLevel, fileName: string, line: number, message: string) => void) | null = null;
 
   constructor() {
     this.callManager = new Native.CallManager() as CallManager;
@@ -270,9 +271,15 @@ export class RingRTCType {
   }
 
   // Called by Rust
-  onLog(message: string): void {
-    // This is really verbose.
-    console.log(`RingRTC: '${message}'`);
+  onLogMessage(
+    level: number,
+    fileName: string,
+    line: number,
+    message: string
+  ): void {
+    if (this.handleLogMessage) {
+      this.handleLogMessage(level, fileName, line, message);
+    }
   }
 
   private sendSignaling(
@@ -299,7 +306,7 @@ export class RingRTCType {
     remoteUserId: UserId,
     remoteDeviceId: DeviceId,
     localDeviceId: DeviceId,
-    timestamp: number,
+    messageAgeSec: number,
     message: CallingMessage
   ): void {
     const remoteSupportsMultiRing = message.supportsMultiRing || false;
@@ -323,7 +330,7 @@ export class RingRTCType {
         remoteUserId,
         remoteDeviceId,
         localDeviceId,
-        timestamp,
+        messageAgeSec,
         callId,
         offerType,
         remoteSupportsMultiRing,
@@ -807,7 +814,7 @@ export interface CallManager {
   receivedOffer(
     remoteUserId: UserId,
     remoteDeviceId: DeviceId,
-    timestamp: number,
+    messageAgeSec: number,
     callId: CallId,
     offerType: OfferType,
     localDeviceId: DeviceId,
@@ -892,7 +899,12 @@ export interface CallManagerCallbacks {
     callId: CallId,
     broadcast: boolean
   ): void;
-  onLog(message: string): void;
+  onLogMessage(
+    level: number,
+    fileName: string,
+    line: number,
+    message: string
+  ): void;
 }
 
 export enum CallState {
@@ -902,7 +914,6 @@ export enum CallState {
   Reconnecting = 'connecting',
   Ended = 'ended',
 }
-
 
 export enum CallEndedReason {
   LocalHangup = "LocalHangup",
@@ -920,4 +931,13 @@ export enum CallEndedReason {
   DeclinedOnAnotherDevice = "DeclinedOnAnotherDevice",
   BusyOnAnotherDevice = "BusyOnAnotherDevice",
   CallerIsNotMultiring = "CallerIsNotMultiring",
+}
+
+export enum CallLogLevel {
+  Off,
+  Error,
+  Warn,
+  Info,
+  Debug,
+  Trace,
 }

@@ -43,9 +43,15 @@ class GumVideoCapturer {
             }
             this.capturing = true;
             try {
+                const devices = yield window.navigator.mediaDevices.enumerateDevices();
+                const filteredVideoInputDevices = devices.filter((device) => {
+                    return (device.kind == "videoinput" && !device.label.includes("IR Camera"));
+                });
+                const videoDeviceId = filteredVideoInputDevices.length == 0 ? undefined : filteredVideoInputDevices[0].deviceId;
                 const mediaStream = yield window.navigator.mediaDevices.getUserMedia({
                     audio: false,
                     video: {
+                        deviceId: videoDeviceId,
                         width: {
                             max: this.maxWidth,
                         },

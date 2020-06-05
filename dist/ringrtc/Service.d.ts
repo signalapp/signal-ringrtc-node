@@ -5,6 +5,7 @@ export declare class RingRTCType {
     handleIncomingCall: ((call: Call) => Promise<CallSettings | null>) | null;
     handleAutoEndedIncomingCallRequest: ((remoteUserId: UserId, reason: CallEndedReason) => void) | null;
     handleNeedsPermission: ((remoteUserId: UserId) => void) | null;
+    handleLogMessage: ((level: CallLogLevel, fileName: string, line: number, message: string) => void) | null;
     constructor();
     private pollEvery;
     startOutgoingCall(remoteUserId: UserId, isVideoCall: boolean, localDeviceId: DeviceId, settings: CallSettings): Call;
@@ -21,9 +22,9 @@ export declare class RingRTCType {
     onSendLegacyHangup(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean, hangupType: HangupType, deviceId: DeviceId | null): void;
     onSendHangup(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean, hangupType: HangupType, deviceId: DeviceId | null): void;
     onSendBusy(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean): void;
-    onLog(message: string): void;
+    onLogMessage(level: number, fileName: string, line: number, message: string): void;
     private sendSignaling;
-    handleCallingMessage(remoteUserId: UserId, remoteDeviceId: DeviceId, localDeviceId: DeviceId, timestamp: number, message: CallingMessage): void;
+    handleCallingMessage(remoteUserId: UserId, remoteDeviceId: DeviceId, localDeviceId: DeviceId, messageAgeSec: number, message: CallingMessage): void;
     get call(): Call | null;
     getCall(callId: CallId): Call | null;
     accept(callId: CallId, asVideoCall: boolean): void;
@@ -151,7 +152,7 @@ export interface CallManager {
     sendVideoStatus(enabled: boolean): void;
     sendVideoFrame(width: number, height: number, buffer: ArrayBuffer): void;
     receiveVideoFrame(buffer: ArrayBuffer): [number, number] | undefined;
-    receivedOffer(remoteUserId: UserId, remoteDeviceId: DeviceId, timestamp: number, callId: CallId, offerType: OfferType, localDeviceId: DeviceId, remoteSupportsMultiRing: boolean, sdp: string): void;
+    receivedOffer(remoteUserId: UserId, remoteDeviceId: DeviceId, messageAgeSec: number, callId: CallId, offerType: OfferType, localDeviceId: DeviceId, remoteSupportsMultiRing: boolean, sdp: string): void;
     receivedAnswer(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, remoteSupportsMultiRing: boolean, sdp: string): void;
     receivedIceCandidates(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, candiateSdps: Array<string>): void;
     receivedHangup(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, hangupType: HangupType, hangupDeviceId: DeviceId | null): void;
@@ -170,7 +171,7 @@ export interface CallManagerCallbacks {
     onSendLegacyHangup(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean, HangupType: HangupType, hangupDeviceId: DeviceId | null): void;
     onSendHangup(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean, HangupType: HangupType, hangupDeviceId: DeviceId | null): void;
     onSendBusy(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean): void;
-    onLog(message: string): void;
+    onLogMessage(level: number, fileName: string, line: number, message: string): void;
 }
 export declare enum CallState {
     Prering = "init",
@@ -195,5 +196,13 @@ export declare enum CallEndedReason {
     DeclinedOnAnotherDevice = "DeclinedOnAnotherDevice",
     BusyOnAnotherDevice = "BusyOnAnotherDevice",
     CallerIsNotMultiring = "CallerIsNotMultiring"
+}
+export declare enum CallLogLevel {
+    Off = 0,
+    Error = 1,
+    Warn = 2,
+    Info = 3,
+    Debug = 4,
+    Trace = 5
 }
 export {};
