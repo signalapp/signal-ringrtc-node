@@ -138,7 +138,7 @@ class RingRTCType {
         message.offer.callId = callId;
         message.offer.type = offerType;
         message.offer.sdp = sdp;
-        this.sendSignaling(remoteUserId, remoteDeviceId, broadcast, message);
+        this.sendSignaling(remoteUserId, remoteDeviceId, callId, broadcast, message);
     }
     // Called by Rust
     onSendAnswer(remoteUserId, remoteDeviceId, callId, broadcast, sdp) {
@@ -146,7 +146,7 @@ class RingRTCType {
         message.answer = new AnswerMessage();
         message.answer.callId = callId;
         message.answer.sdp = sdp;
-        this.sendSignaling(remoteUserId, remoteDeviceId, broadcast, message);
+        this.sendSignaling(remoteUserId, remoteDeviceId, callId, broadcast, message);
     }
     // Called by Rust
     onSendIceCandidates(remoteUserId, remoteDeviceId, callId, broadcast, candidates) {
@@ -160,7 +160,7 @@ class RingRTCType {
             copy.sdp = candidate.sdp;
             message.iceCandidates.push(copy);
         }
-        this.sendSignaling(remoteUserId, remoteDeviceId, broadcast, message);
+        this.sendSignaling(remoteUserId, remoteDeviceId, callId, broadcast, message);
     }
     // Called by Rust
     onSendLegacyHangup(remoteUserId, remoteDeviceId, callId, broadcast, hangupType, deviceId) {
@@ -169,7 +169,7 @@ class RingRTCType {
         message.legacyHangup.callId = callId;
         message.legacyHangup.type = hangupType;
         message.legacyHangup.deviceId = deviceId || 0;
-        this.sendSignaling(remoteUserId, remoteDeviceId, broadcast, message);
+        this.sendSignaling(remoteUserId, remoteDeviceId, callId, broadcast, message);
     }
     // Called by Rust
     onSendHangup(remoteUserId, remoteDeviceId, callId, broadcast, hangupType, deviceId) {
@@ -178,29 +178,39 @@ class RingRTCType {
         message.hangup.callId = callId;
         message.hangup.type = hangupType;
         message.hangup.deviceId = deviceId || 0;
-        this.sendSignaling(remoteUserId, remoteDeviceId, broadcast, message);
+        this.sendSignaling(remoteUserId, remoteDeviceId, callId, broadcast, message);
     }
     // Called by Rust
     onSendBusy(remoteUserId, remoteDeviceId, callId, broadcast) {
         const message = new CallingMessage();
         message.busy = new BusyMessage();
         message.busy.callId = callId;
-        this.sendSignaling(remoteUserId, remoteDeviceId, broadcast, message);
+        this.sendSignaling(remoteUserId, remoteDeviceId, callId, broadcast, message);
+    }
+    sendSignaling(remoteUserId, remoteDeviceId, callId, broadcast, message) {
+        message.supportsMultiRing = true;
+        if (!broadcast) {
+            message.destinationDeviceId = remoteDeviceId;
+        }
+        (() => __awaiter(this, void 0, void 0, function* () {
+            if (this.handleOutgoingSignaling) {
+                const signalingResult = yield this.handleOutgoingSignaling(remoteUserId, message);
+                if (signalingResult) {
+                    this.callManager.signalingMessageSent(callId);
+                }
+                else {
+                    this.callManager.signalingMessageSendFailed(callId);
+                }
+            }
+            else {
+                this.callManager.signalingMessageSendFailed(callId);
+            }
+        }))();
     }
     // Called by Rust
     onLogMessage(level, fileName, line, message) {
         if (this.handleLogMessage) {
             this.handleLogMessage(level, fileName, line, message);
-        }
-    }
-    sendSignaling(remoteUserId, remoteDeviceId, broadcast, message) {
-        message.supportsMultiRing = true;
-        if (!broadcast) {
-            message.destinationDeviceId = remoteDeviceId;
-        }
-        if (this.handleOutgoingSignaling) {
-            // TODO: Use promise to implement signaling queueing
-            this.handleOutgoingSignaling(remoteUserId, message);
         }
     }
     // Called by MessageReceiver

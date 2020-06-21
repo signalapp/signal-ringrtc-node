@@ -1,7 +1,7 @@
 export declare class RingRTCType {
     private readonly callManager;
     private _call;
-    handleOutgoingSignaling: ((remoteUserId: UserId, message: CallingMessage) => Promise<void>) | null;
+    handleOutgoingSignaling: ((remoteUserId: UserId, message: CallingMessage) => Promise<boolean>) | null;
     handleIncomingCall: ((call: Call) => Promise<CallSettings | null>) | null;
     handleAutoEndedIncomingCallRequest: ((remoteUserId: UserId, reason: CallEndedReason) => void) | null;
     handleNeedsPermission: ((remoteUserId: UserId) => void) | null;
@@ -22,8 +22,8 @@ export declare class RingRTCType {
     onSendLegacyHangup(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean, hangupType: HangupType, deviceId: DeviceId | null): void;
     onSendHangup(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean, hangupType: HangupType, deviceId: DeviceId | null): void;
     onSendBusy(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean): void;
-    onLogMessage(level: number, fileName: string, line: number, message: string): void;
     private sendSignaling;
+    onLogMessage(level: number, fileName: string, line: number, message: string): void;
     handleCallingMessage(remoteUserId: UserId, remoteDeviceId: DeviceId, localDeviceId: DeviceId, messageAgeSec: number, message: CallingMessage): void;
     get call(): Call | null;
     getCall(callId: CallId): Call | null;
@@ -148,6 +148,8 @@ export interface CallManager {
     accept(callId: CallId): void;
     ignore(callId: CallId): void;
     hangup(): void;
+    signalingMessageSent(callId: CallId): void;
+    signalingMessageSendFailed(callId: CallId): void;
     setOutgoingAudioEnabled(enabled: boolean): void;
     sendVideoStatus(enabled: boolean): void;
     sendVideoFrame(width: number, height: number, buffer: ArrayBuffer): void;
