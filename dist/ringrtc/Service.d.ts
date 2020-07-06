@@ -4,7 +4,6 @@ export declare class RingRTCType {
     handleOutgoingSignaling: ((remoteUserId: UserId, message: CallingMessage) => Promise<boolean>) | null;
     handleIncomingCall: ((call: Call) => Promise<CallSettings | null>) | null;
     handleAutoEndedIncomingCallRequest: ((remoteUserId: UserId, reason: CallEndedReason) => void) | null;
-    handleNeedsPermission: ((remoteUserId: UserId) => void) | null;
     handleLogMessage: ((level: CallLogLevel, fileName: string, line: number, message: string) => void) | null;
     constructor();
     private pollEvery;
@@ -115,8 +114,7 @@ export declare class OfferMessage {
 }
 export declare enum OfferType {
     AudioCall = 0,
-    VideoCall = 1,
-    NeedsPermission = 2
+    VideoCall = 1
 }
 export declare class AnswerMessage {
     callId?: CallId;
@@ -140,7 +138,8 @@ export declare enum HangupType {
     Normal = 0,
     Accepted = 1,
     Declined = 2,
-    Busy = 3
+    Busy = 3,
+    NeedPermission = 4
 }
 export interface CallManager {
     createOutgoingCall(remoteUserId: UserId, isVideoCall: boolean, localDeviceId: DeviceId): CallId;
@@ -185,6 +184,7 @@ export declare enum CallState {
 export declare enum CallEndedReason {
     LocalHangup = "LocalHangup",
     RemoteHangup = "RemoteHangup",
+    RemoteHangupNeedPermission = "RemoteHangupNeedPermission",
     Declined = "Declined",
     Busy = "Busy",
     Glare = "Glare",

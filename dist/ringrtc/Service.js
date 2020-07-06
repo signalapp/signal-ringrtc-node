@@ -25,7 +25,6 @@ class RingRTCType {
         this.handleOutgoingSignaling = null;
         this.handleIncomingCall = null;
         this.handleAutoEndedIncomingCallRequest = null;
-        this.handleNeedsPermission = null;
         this.handleLogMessage = null;
         this.callManager = new Native.CallManager();
         this._call = null;
@@ -225,12 +224,6 @@ class RingRTCType {
             const callId = message.offer.callId;
             const sdp = message.offer.sdp;
             const offerType = message.offer.type || OfferType.AudioCall;
-            if (offerType === OfferType.NeedsPermission) {
-                if (!!this.handleNeedsPermission) {
-                    this.handleNeedsPermission(remoteUserId);
-                }
-                return;
-            }
             this.callManager.receivedOffer(remoteUserId, remoteDeviceId, localDeviceId, messageAgeSec, callId, offerType, remoteSupportsMultiRing, sdp);
         }
         if (message.answer && message.answer.callId && message.answer.sdp) {
@@ -525,7 +518,6 @@ var OfferType;
 (function (OfferType) {
     OfferType[OfferType["AudioCall"] = 0] = "AudioCall";
     OfferType[OfferType["VideoCall"] = 1] = "VideoCall";
-    OfferType[OfferType["NeedsPermission"] = 2] = "NeedsPermission";
 })(OfferType = exports.OfferType || (exports.OfferType = {}));
 class AnswerMessage {
 }
@@ -545,6 +537,7 @@ var HangupType;
     HangupType[HangupType["Accepted"] = 1] = "Accepted";
     HangupType[HangupType["Declined"] = 2] = "Declined";
     HangupType[HangupType["Busy"] = 3] = "Busy";
+    HangupType[HangupType["NeedPermission"] = 4] = "NeedPermission";
 })(HangupType = exports.HangupType || (exports.HangupType = {}));
 var CallState;
 (function (CallState) {
@@ -558,6 +551,7 @@ var CallEndedReason;
 (function (CallEndedReason) {
     CallEndedReason["LocalHangup"] = "LocalHangup";
     CallEndedReason["RemoteHangup"] = "RemoteHangup";
+    CallEndedReason["RemoteHangupNeedPermission"] = "RemoteHangupNeedPermission";
     CallEndedReason["Declined"] = "Declined";
     CallEndedReason["Busy"] = "Busy";
     CallEndedReason["Glare"] = "Glare";
