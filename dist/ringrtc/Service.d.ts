@@ -15,8 +15,8 @@ export declare class RingRTCType {
     onCallEnded(remoteUserId: UserId, reason: CallEndedReason): void;
     onRemoteVideoEnabled(remoteUserId: UserId, enabled: boolean): void;
     renderVideoFrame(width: number, height: number, buffer: ArrayBuffer): void;
-    onSendOffer(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean, offerType: OfferType, sdp: string): void;
-    onSendAnswer(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean, sdp: string): void;
+    onSendOffer(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean, offerType: OfferType, opaque?: ArrayBuffer, sdp?: string): void;
+    onSendAnswer(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean, opaque?: ArrayBuffer, sdp?: string): void;
     onSendIceCandidates(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean, candidates: Array<IceCandidateMessage>): void;
     onSendLegacyHangup(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean, hangupType: HangupType, deviceId: DeviceId | null): void;
     onSendHangup(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean, hangupType: HangupType, deviceId: DeviceId | null): void;
@@ -94,6 +94,9 @@ export declare class Call {
     private sendVideoStatus;
     private enableOrDisableRenderer;
 }
+declare type ProtobufArrayBuffer = ArrayBuffer | {
+    toArrayBuffer: () => ArrayBuffer;
+};
 export declare type UserId = string;
 export declare type DeviceId = number;
 export declare type CallId = any;
@@ -110,6 +113,7 @@ export declare class CallingMessage {
 export declare class OfferMessage {
     callId?: CallId;
     type?: OfferType;
+    opaque?: ProtobufArrayBuffer;
     sdp?: string;
 }
 export declare enum OfferType {
@@ -118,12 +122,14 @@ export declare enum OfferType {
 }
 export declare class AnswerMessage {
     callId?: CallId;
+    opaque?: ProtobufArrayBuffer;
     sdp?: string;
 }
 export declare class IceCandidateMessage {
     callId?: CallId;
     mid?: string;
-    midIndex?: number;
+    line?: number;
+    opaque?: ProtobufArrayBuffer;
     sdp?: string;
 }
 export declare class BusyMessage {
@@ -143,7 +149,7 @@ export declare enum HangupType {
 }
 export interface CallManager {
     createOutgoingCall(remoteUserId: UserId, isVideoCall: boolean, localDeviceId: DeviceId): CallId;
-    proceed(callId: CallId, iceServerUsername: string, iceServerPassword: string, iceServerUrls: Array<string>, hideIp: boolean, enableForking: boolean): void;
+    proceed(callId: CallId, iceServerUsername: string, iceServerPassword: string, iceServerUrls: Array<string>, hideIp: boolean): void;
     accept(callId: CallId): void;
     ignore(callId: CallId): void;
     hangup(): void;
@@ -153,9 +159,9 @@ export interface CallManager {
     sendVideoStatus(enabled: boolean): void;
     sendVideoFrame(width: number, height: number, buffer: ArrayBuffer): void;
     receiveVideoFrame(buffer: ArrayBuffer): [number, number] | undefined;
-    receivedOffer(remoteUserId: UserId, remoteDeviceId: DeviceId, messageAgeSec: number, callId: CallId, offerType: OfferType, localDeviceId: DeviceId, remoteSupportsMultiRing: boolean, sdp: string): void;
-    receivedAnswer(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, remoteSupportsMultiRing: boolean, sdp: string): void;
-    receivedIceCandidates(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, candiateSdps: Array<string>): void;
+    receivedOffer(remoteUserId: UserId, remoteDeviceId: DeviceId, messageAgeSec: number, callId: CallId, offerType: OfferType, localDeviceId: DeviceId, remoteSupportsMultiRing: boolean, opaque?: ArrayBuffer, sdp?: string): void;
+    receivedAnswer(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, remoteSupportsMultiRing: boolean, opaque?: ArrayBuffer, sdp?: string): void;
+    receivedIceCandidates(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, candiates: Array<IceCandidateMessage>): void;
     receivedHangup(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, hangupType: HangupType, hangupDeviceId: DeviceId | null): void;
     receivedBusy(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId): void;
     poll(callbacks: CallManagerCallbacks): void;
@@ -166,8 +172,8 @@ export interface CallManagerCallbacks {
     onCallState(remoteUserId: UserId, state: CallState): void;
     onCallEnded(remoteUserId: UserId, endedReason: CallEndedReason): void;
     onRemoteVideoEnabled(remoteUserId: UserId, enabled: boolean): void;
-    onSendOffer(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean, mediaType: number, sdp: string): void;
-    onSendAnswer(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean, sdp: string): void;
+    onSendOffer(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean, mediaType: number, opaque?: ArrayBuffer, sdp?: string): void;
+    onSendAnswer(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean, opaque?: ArrayBuffer, sdp?: string): void;
     onSendIceCandidates(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean, candidates: Array<IceCandidateMessage>): void;
     onSendLegacyHangup(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean, HangupType: HangupType, hangupDeviceId: DeviceId | null): void;
     onSendHangup(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean, HangupType: HangupType, hangupDeviceId: DeviceId | null): void;

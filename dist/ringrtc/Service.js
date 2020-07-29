@@ -79,13 +79,12 @@ class RingRTCType {
         }))();
     }
     proceed(callId, settings) {
-        const enableForking = true;
         // tslint:disable no-floating-promises
         (() => __awaiter(this, void 0, void 0, function* () {
             // This is a silly way of causing a deadlock.
             // tslint:disable-next-line await-promise
             yield 0;
-            this.callManager.proceed(callId, settings.iceServer.username || '', settings.iceServer.password || '', settings.iceServer.urls, settings.hideIp, enableForking);
+            this.callManager.proceed(callId, settings.iceServer.username || '', settings.iceServer.password || '', settings.iceServer.urls, settings.hideIp);
         }))();
     }
     // Called by Rust
@@ -131,19 +130,21 @@ class RingRTCType {
         }
     }
     // Called by Rust
-    onSendOffer(remoteUserId, remoteDeviceId, callId, broadcast, offerType, sdp) {
+    onSendOffer(remoteUserId, remoteDeviceId, callId, broadcast, offerType, opaque, sdp) {
         const message = new CallingMessage();
         message.offer = new OfferMessage();
         message.offer.callId = callId;
         message.offer.type = offerType;
+        message.offer.opaque = opaque;
         message.offer.sdp = sdp;
         this.sendSignaling(remoteUserId, remoteDeviceId, callId, broadcast, message);
     }
     // Called by Rust
-    onSendAnswer(remoteUserId, remoteDeviceId, callId, broadcast, sdp) {
+    onSendAnswer(remoteUserId, remoteDeviceId, callId, broadcast, opaque, sdp) {
         const message = new CallingMessage();
         message.answer = new AnswerMessage();
         message.answer.callId = callId;
+        message.answer.opaque = opaque;
         message.answer.sdp = sdp;
         this.sendSignaling(remoteUserId, remoteDeviceId, callId, broadcast, message);
     }
@@ -154,8 +155,10 @@ class RingRTCType {
         for (const candidate of candidates) {
             const copy = new IceCandidateMessage();
             copy.callId = callId;
-            copy.mid = candidate.mid;
-            copy.midIndex = 0;
+            // TODO: Remove this once all old clients are gone (along with .sdp below)
+            copy.mid = "audio";
+            copy.line = 0;
+            copy.opaque = candidate.opaque;
             copy.sdp = candidate.sdp;
             message.iceCandidates.push(copy);
         }
@@ -220,28 +223,36 @@ class RingRTCType {
             // Drop the message as it isn't for this device, handleIgnoredCall() is not needed.
             return;
         }
-        if (message.offer && message.offer.callId && message.offer.sdp) {
+        if (message.offer && message.offer.callId) {
             const callId = message.offer.callId;
+            const opaque = to_array_buffer(message.offer.opaque);
             const sdp = message.offer.sdp;
             const offerType = message.offer.type || OfferType.AudioCall;
-            this.callManager.receivedOffer(remoteUserId, remoteDeviceId, localDeviceId, messageAgeSec, callId, offerType, remoteSupportsMultiRing, sdp);
+            this.callManager.receivedOffer(remoteUserId, remoteDeviceId, localDeviceId, messageAgeSec, callId, offerType, remoteSupportsMultiRing, opaque, sdp);
         }
-        if (message.answer && message.answer.callId && message.answer.sdp) {
+        if (message.answer && message.answer.callId) {
             const callId = message.answer.callId;
+            const opaque = to_array_buffer(message.answer.opaque);
             const sdp = message.answer.sdp;
-            this.callManager.receivedAnswer(remoteUserId, remoteDeviceId, callId, remoteSupportsMultiRing, sdp);
+            this.callManager.receivedAnswer(remoteUserId, remoteDeviceId, callId, remoteSupportsMultiRing, opaque, sdp);
         }
         if (message.iceCandidates && message.iceCandidates.length > 0) {
-            let callId = null;
-            const candidateSdps = [];
+            // We assume they all have the same .callId
+            let callId = message.iceCandidates[0].callId;
+            // We have to copy them to do the .toArrayBuffer() thing.
+            const candidates = [];
             for (const candidate of message.iceCandidates) {
-                // We assume they all have the same .callId
-                callId = candidate.callId;
-                if (!!candidate.sdp) {
-                    candidateSdps.push(candidate.sdp);
-                }
+                const copy = new IceCandidateMessage();
+                // TODO: Remove this once all old clients are gone (along with .sdp below)
+                // Actually, I don't think we need this at all, but it's safer just to leave it
+                // temporariliy.
+                copy.mid = "audio";
+                copy.line = 0;
+                copy.opaque = to_array_buffer(candidate.opaque);
+                copy.sdp = candidate.sdp;
+                candidates.push(copy);
             }
-            this.callManager.receivedIceCandidates(remoteUserId, remoteDeviceId, callId, candidateSdps);
+            this.callManager.receivedIceCandidates(remoteUserId, remoteDeviceId, callId, candidates);
         }
         if (message.hangup && message.hangup.callId) {
             const callId = message.hangup.callId;
@@ -508,6 +519,15 @@ class Call {
     }
 }
 exports.Call = Call;
+function to_array_buffer(pbab) {
+    if (!pbab) {
+        return pbab;
+    }
+    if (pbab instanceof ArrayBuffer) {
+        return pbab;
+    }
+    return pbab.toArrayBuffer();
+}
 class CallingMessage {
 }
 exports.CallingMessage = CallingMessage;
