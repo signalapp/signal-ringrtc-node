@@ -6,17 +6,22 @@ export declare class GumVideoCapturer {
     private readonly maxWidth;
     private readonly maxHeight;
     private readonly maxFramerate;
-    private readonly localPreview;
+    private localPreview?;
     private capturing;
     private call?;
     private mediaStream?;
     private canvas?;
     private canvasContext?;
     private intervalId?;
-    constructor(maxWidth: number, maxHeight: number, maxFramerate: number, localPreview: Ref<HTMLVideoElement>);
+    private preferredDeviceId?;
+    constructor(maxWidth: number, maxHeight: number, maxFramerate: number);
+    setLocalPreview(localPreview: Ref<HTMLVideoElement> | undefined): void;
     enableCapture(): void;
     enableCaptureAndSend(call: Call): void;
     disable(): void;
+    setPreferredDevice(deviceId: string): Promise<void>;
+    enumerateDevices(): Promise<MediaDeviceInfo[]>;
+    getPreferredDeviceId(): Promise<string | undefined>;
     private startCapturing;
     private stopCapturing;
     private startSending;
@@ -25,11 +30,12 @@ export declare class GumVideoCapturer {
     private captureAndSendOneVideoFrame;
 }
 export declare class CanvasVideoRenderer {
-    private readonly canvas;
+    private canvas?;
     private buffer;
     private call?;
     private rafId?;
-    constructor(canvas: Ref<HTMLCanvasElement>);
+    constructor();
+    setCanvas(canvas: Ref<HTMLCanvasElement> | undefined): void;
     enable(call: Call): void;
     disable(): void;
     private requestAnimationFrameCallback;

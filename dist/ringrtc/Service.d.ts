@@ -34,6 +34,11 @@ export declare class RingRTCType {
     setOutgoingVideo(callId: CallId, enabled: boolean): void;
     setVideoCapturer(callId: CallId, capturer: VideoCapturer | null): void;
     setVideoRenderer(callId: CallId, renderer: VideoRenderer | null): void;
+    getAudioInputs(): AudioDevice[];
+    setAudioInput(index: number): void;
+    getAudioOutputs(): AudioDevice[];
+    setAudioOutput(index: number): void;
+    findBestMatchingDeviceIndex(preferred: AudioDevice | undefined, available: AudioDevice[]): number | undefined;
 }
 export interface CallSettings {
     iceServer: IceServer;
@@ -43,6 +48,12 @@ interface IceServer {
     username?: string;
     password?: string;
     urls: Array<string>;
+}
+export interface AudioDevice {
+    name: string;
+    index: number;
+    same_name_index: number;
+    unique_id?: string;
 }
 export interface VideoCapturer {
     enableCapture(): void;
@@ -92,6 +103,7 @@ export declare class Call {
     receiveVideoFrame(buffer: ArrayBuffer): [number, number] | undefined;
     private enableOrDisableCapturer;
     private sendVideoStatus;
+    setLowBandwidthMode(enabled: boolean): void;
     private enableOrDisableRenderer;
 }
 declare type ProtobufArrayBuffer = ArrayBuffer | {
@@ -157,6 +169,7 @@ export interface CallManager {
     signalingMessageSendFailed(callId: CallId): void;
     setOutgoingAudioEnabled(enabled: boolean): void;
     sendVideoStatus(enabled: boolean): void;
+    setLowBandwidthMode(enabled: boolean): void;
     sendVideoFrame(width: number, height: number, buffer: ArrayBuffer): void;
     receiveVideoFrame(buffer: ArrayBuffer): [number, number] | undefined;
     receivedOffer(remoteUserId: UserId, remoteDeviceId: DeviceId, messageAgeSec: number, callId: CallId, offerType: OfferType, localDeviceId: DeviceId, remoteSupportsMultiRing: boolean, opaque?: ArrayBuffer, sdp?: string): void;
@@ -164,6 +177,10 @@ export interface CallManager {
     receivedIceCandidates(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, candiates: Array<IceCandidateMessage>): void;
     receivedHangup(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, hangupType: HangupType, hangupDeviceId: DeviceId | null): void;
     receivedBusy(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId): void;
+    getAudioInputs(): AudioDevice[];
+    setAudioInput(index: number): void;
+    getAudioOutputs(): AudioDevice[];
+    setAudioOutput(index: number): void;
     poll(callbacks: CallManagerCallbacks): void;
 }
 export interface CallManagerCallbacks {

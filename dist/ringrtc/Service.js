@@ -340,6 +340,41 @@ class RingRTCType {
         }
         call.videoRenderer = renderer;
     }
+    getAudioInputs() {
+        return this.callManager.getAudioInputs();
+    }
+    setAudioInput(index) {
+        this.callManager.setAudioInput(index);
+    }
+    getAudioOutputs() {
+        return this.callManager.getAudioOutputs();
+    }
+    setAudioOutput(index) {
+        this.callManager.setAudioOutput(index);
+    }
+    findBestMatchingDeviceIndex(preferred, available) {
+        if (!preferred) {
+            // No preference stored
+            return undefined;
+        }
+        // Match by UUID first, if available
+        if (preferred.unique_id) {
+            var match_index = available.findIndex(d => d.unique_id === preferred.unique_id);
+            if (match_index != -1) {
+                return match_index;
+            }
+        }
+        // Match by name second, and if there are multiple such names - by instance index.
+        var matching_names = available.filter(d => d.name === preferred.name);
+        if (matching_names.length > preferred.same_name_index) {
+            return matching_names[preferred.same_name_index].index;
+        }
+        if (matching_names.length > 0) {
+            return matching_names[0].index;
+        }
+        // Nothing matches.
+        return undefined;
+    }
 }
 exports.RingRTCType = RingRTCType;
 class Call {
@@ -487,6 +522,21 @@ class Call {
             yield 0;
             try {
                 this._callManager.sendVideoStatus(enabled);
+            }
+            catch (_a) {
+                // We may not have an active connection any more.
+                // In which case it doesn't matter
+            }
+        }))();
+    }
+    setLowBandwidthMode(enabled) {
+        // tslint:disable no-floating-promises
+        (() => __awaiter(this, void 0, void 0, function* () {
+            // This is a silly way of causing a deadlock.
+            // tslint:disable-next-line await-promise
+            yield 0;
+            try {
+                this._callManager.setLowBandwidthMode(enabled);
             }
             catch (_a) {
                 // We may not have an active connection any more.

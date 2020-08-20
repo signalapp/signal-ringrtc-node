@@ -16,12 +16,14 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 class GumVideoCapturer {
-    constructor(maxWidth, maxHeight, maxFramerate, localPreview) {
+    constructor(maxWidth, maxHeight, maxFramerate) {
         this.maxWidth = maxWidth;
         this.maxHeight = maxHeight;
         this.maxFramerate = maxFramerate;
-        this.localPreview = localPreview;
         this.capturing = false;
+    }
+    setLocalPreview(localPreview) {
+        this.localPreview = localPreview;
     }
     enableCapture() {
         // tslint:disable no-floating-promises
@@ -36,6 +38,40 @@ class GumVideoCapturer {
         this.stopCapturing();
         this.stopSending();
     }
+    setPreferredDevice(deviceId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            this.preferredDeviceId = deviceId;
+            if (this.capturing) {
+                // Restart capturing to start using the new device
+                yield this.stopCapturing();
+                yield this.startCapturing();
+            }
+        });
+    }
+    enumerateDevices() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const devices = yield window.navigator.mediaDevices.enumerateDevices();
+            const cameras = devices.filter(d => d.kind == "videoinput");
+            return cameras;
+        });
+    }
+    getPreferredDeviceId() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const devices = yield this.enumerateDevices();
+            const matchingId = devices.filter(d => d.deviceId === this.preferredDeviceId);
+            const nonInfrared = devices.filter(d => !d.label.includes("IR Camera"));
+            /// By default, pick the first non-IR camera (but allow the user to pick the infrared if they so desire)
+            if (matchingId.length > 0) {
+                return matchingId[0].deviceId;
+            }
+            else if (nonInfrared.length > 0) {
+                return nonInfrared[0].deviceId;
+            }
+            else {
+                return undefined;
+            }
+        });
+    }
     startCapturing() {
         return __awaiter(this, void 0, void 0, function* () {
             if (this.capturing) {
@@ -43,15 +79,11 @@ class GumVideoCapturer {
             }
             this.capturing = true;
             try {
-                const devices = yield window.navigator.mediaDevices.enumerateDevices();
-                const filteredVideoInputDevices = devices.filter((device) => {
-                    return (device.kind == "videoinput" && !device.label.includes("IR Camera"));
-                });
-                const videoDeviceId = filteredVideoInputDevices.length == 0 ? undefined : filteredVideoInputDevices[0].deviceId;
+                const preferredDeviceId = yield this.getPreferredDeviceId();
                 const mediaStream = yield window.navigator.mediaDevices.getUserMedia({
                     audio: false,
                     video: {
-                        deviceId: videoDeviceId,
+                        deviceId: preferredDeviceId,
                         width: {
                             max: this.maxWidth,
                         },
@@ -72,7 +104,7 @@ class GumVideoCapturer {
                     }
                     return;
                 }
-                if (!!this.localPreview.current && !!mediaStream) {
+                if (this.localPreview && !!this.localPreview.current && !!mediaStream) {
                     this.setLocalPreviewSourceObject(mediaStream);
                 }
                 this.mediaStream = mediaStream;
@@ -94,7 +126,7 @@ class GumVideoCapturer {
             }
             this.mediaStream = undefined;
         }
-        if (!!this.localPreview.current) {
+        if (this.localPreview && !!this.localPreview.current) {
             this.localPreview.current.srcObject = null;
         }
     }
@@ -117,6 +149,9 @@ class GumVideoCapturer {
         }
     }
     setLocalPreviewSourceObject(mediaStream) {
+        if (!this.localPreview) {
+            return;
+        }
         const localPreview = this.localPreview.current;
         if (!localPreview) {
             return;
@@ -131,7 +166,7 @@ class GumVideoCapturer {
         }
     }
     captureAndSendOneVideoFrame() {
-        if (!this.localPreview.current) {
+        if (!this.localPreview || !this.localPreview.current) {
             return;
         }
         if (!this.localPreview.current.srcObject && !!this.mediaStream) {
@@ -151,10 +186,12 @@ class GumVideoCapturer {
 }
 exports.GumVideoCapturer = GumVideoCapturer;
 class CanvasVideoRenderer {
-    constructor(canvas) {
-        this.canvas = canvas;
+    constructor() {
         // The max size video frame we'll support (in RGBA)
         this.buffer = new ArrayBuffer(1920 * 1080 * 4);
+    }
+    setCanvas(canvas) {
+        this.canvas = canvas;
     }
     enable(call) {
         if (this.call === call) {
@@ -175,6 +212,9 @@ class CanvasVideoRenderer {
         this.rafId = window.requestAnimationFrame(this.requestAnimationFrameCallback.bind(this));
     }
     renderBlack() {
+        if (!this.canvas) {
+            return;
+        }
         const canvas = this.canvas.current;
         if (!canvas) {
             return;
@@ -187,7 +227,7 @@ class CanvasVideoRenderer {
         context.fillRect(0, 0, canvas.width, canvas.height);
     }
     renderVideoFrame() {
-        if (!this.call) {
+        if (!this.call || !this.canvas) {
             return;
         }
         const canvas = this.canvas.current;
