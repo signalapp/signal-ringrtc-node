@@ -55,23 +55,6 @@ class GumVideoCapturer {
             return cameras;
         });
     }
-    getPreferredDeviceId() {
-        return __awaiter(this, void 0, void 0, function* () {
-            const devices = yield this.enumerateDevices();
-            const matchingId = devices.filter(d => d.deviceId === this.preferredDeviceId);
-            const nonInfrared = devices.filter(d => !d.label.includes("IR Camera"));
-            /// By default, pick the first non-IR camera (but allow the user to pick the infrared if they so desire)
-            if (matchingId.length > 0) {
-                return matchingId[0].deviceId;
-            }
-            else if (nonInfrared.length > 0) {
-                return nonInfrared[0].deviceId;
-            }
-            else {
-                return undefined;
-            }
-        });
-    }
     startCapturing() {
         return __awaiter(this, void 0, void 0, function* () {
             if (this.capturing) {
@@ -79,11 +62,10 @@ class GumVideoCapturer {
             }
             this.capturing = true;
             try {
-                const preferredDeviceId = yield this.getPreferredDeviceId();
                 const mediaStream = yield window.navigator.mediaDevices.getUserMedia({
                     audio: false,
                     video: {
-                        deviceId: preferredDeviceId,
+                        deviceId: this.preferredDeviceId,
                         width: {
                             max: this.maxWidth,
                         },

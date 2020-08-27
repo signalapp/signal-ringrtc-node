@@ -21,7 +21,6 @@ export declare class GumVideoCapturer {
     disable(): void;
     setPreferredDevice(deviceId: string): Promise<void>;
     enumerateDevices(): Promise<MediaDeviceInfo[]>;
-    getPreferredDeviceId(): Promise<string | undefined>;
     private startCapturing;
     private stopCapturing;
     private startSending;

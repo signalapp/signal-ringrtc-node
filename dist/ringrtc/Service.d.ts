@@ -38,7 +38,6 @@ export declare class RingRTCType {
     setAudioInput(index: number): void;
     getAudioOutputs(): AudioDevice[];
     setAudioOutput(index: number): void;
-    findBestMatchingDeviceIndex(preferred: AudioDevice | undefined, available: AudioDevice[]): number | undefined;
 }
 export interface CallSettings {
     iceServer: IceServer;
@@ -52,8 +51,8 @@ interface IceServer {
 export interface AudioDevice {
     name: string;
     index: number;
-    same_name_index: number;
-    unique_id?: string;
+    uniqueId: string;
+    i18nKey?: string;
 }
 export interface VideoCapturer {
     enableCapture(): void;
