@@ -58,6 +58,14 @@ class RingRTCType {
     }
     // Called by Rust
     onStartIncomingCall(remoteUserId, callId, isVideoCall) {
+        // Temporary: Force hangup in all glare scenarios until handled gracefully.
+        // In case of a glare loser, an incoming call will be generated right
+        // after the outgoing call is ended. In that case, ignore it once.
+        if (this._call && this._call.endedReason === CallEndedReason.Glare) {
+            this._call.endedReason = undefined;
+            this.ignore(callId);
+            return;
+        }
         const isIncoming = true;
         const call = new Call(this.callManager, remoteUserId, callId, isIncoming, isVideoCall, null, CallState.Prering);
         // Callback to UX not set
@@ -98,7 +106,18 @@ class RingRTCType {
     // Called by Rust
     onCallEnded(remoteUserId, reason) {
         const call = this._call;
-        if (!call || call.remoteUserId !== remoteUserId) {
+        // Temporary: Force hangup in all glare scenarios until handled gracefully.
+        if (call && (reason === CallEndedReason.ReceivedOfferWithGlare || reason === CallEndedReason.Glare)) {
+            call.hangup();
+        }
+        // If there is no call or the remoteUserId doesn't match that of
+        // the current call, or if one of the "receive offer while alread
+        // in a call" reasons are provided, don't end the current call, 
+        // just update the call history.
+        if (!call ||
+            (call.remoteUserId !== remoteUserId) ||
+            (reason === CallEndedReason.ReceivedOfferWhileActive) ||
+            (reason === CallEndedReason.ReceivedOfferExpired)) {
             if (this.handleAutoEndedIncomingCallRequest) {
                 this.handleAutoEndedIncomingCallRequest(remoteUserId, reason);
             }
@@ -217,7 +236,7 @@ class RingRTCType {
     }
     // Called by MessageReceiver
     // tslint:disable-next-line cyclomatic-complexity
-    handleCallingMessage(remoteUserId, remoteDeviceId, localDeviceId, messageAgeSec, message) {
+    handleCallingMessage(remoteUserId, remoteDeviceId, localDeviceId, messageAgeSec, message, senderIdentityKey, receiverIdentityKey) {
         const remoteSupportsMultiRing = message.supportsMultiRing || false;
         if (message.destinationDeviceId && message.destinationDeviceId !== localDeviceId) {
             // Drop the message as it isn't for this device, handleIgnoredCall() is not needed.
@@ -228,13 +247,13 @@ class RingRTCType {
             const opaque = to_array_buffer(message.offer.opaque);
             const sdp = message.offer.sdp;
             const offerType = message.offer.type || OfferType.AudioCall;
-            this.callManager.receivedOffer(remoteUserId, remoteDeviceId, localDeviceId, messageAgeSec, callId, offerType, remoteSupportsMultiRing, opaque, sdp);
+            this.callManager.receivedOffer(remoteUserId, remoteDeviceId, localDeviceId, messageAgeSec, callId, offerType, remoteSupportsMultiRing, opaque, sdp, senderIdentityKey, receiverIdentityKey);
         }
         if (message.answer && message.answer.callId) {
             const callId = message.answer.callId;
             const opaque = to_array_buffer(message.answer.opaque);
             const sdp = message.answer.sdp;
-            this.callManager.receivedAnswer(remoteUserId, remoteDeviceId, callId, remoteSupportsMultiRing, opaque, sdp);
+            this.callManager.receivedAnswer(remoteUserId, remoteDeviceId, callId, remoteSupportsMultiRing, opaque, sdp, senderIdentityKey, receiverIdentityKey);
         }
         if (message.iceCandidates && message.iceCandidates.length > 0) {
             // We assume they all have the same .callId
@@ -604,6 +623,7 @@ var CallEndedReason;
     CallEndedReason["Glare"] = "Glare";
     CallEndedReason["ReceivedOfferExpired"] = "ReceivedOfferExpired";
     CallEndedReason["ReceivedOfferWhileActive"] = "ReceivedOfferWhileActive";
+    CallEndedReason["ReceivedOfferWithGlare"] = "ReceivedOfferWithGlare";
     CallEndedReason["SignalingFailure"] = "SignalingFailure";
     CallEndedReason["ConnectionFailure"] = "ConnectionFailure";
     CallEndedReason["InternalFailure"] = "InternalFailure";

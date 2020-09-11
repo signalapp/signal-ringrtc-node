@@ -23,7 +23,7 @@ export declare class RingRTCType {
     onSendBusy(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean): void;
     private sendSignaling;
     onLogMessage(level: number, fileName: string, line: number, message: string): void;
-    handleCallingMessage(remoteUserId: UserId, remoteDeviceId: DeviceId, localDeviceId: DeviceId, messageAgeSec: number, message: CallingMessage): void;
+    handleCallingMessage(remoteUserId: UserId, remoteDeviceId: DeviceId, localDeviceId: DeviceId, messageAgeSec: number, message: CallingMessage, senderIdentityKey: ArrayBuffer, receiverIdentityKey: ArrayBuffer): void;
     get call(): Call | null;
     getCall(callId: CallId): Call | null;
     accept(callId: CallId, asVideoCall: boolean): void;
@@ -171,9 +171,9 @@ export interface CallManager {
     setLowBandwidthMode(enabled: boolean): void;
     sendVideoFrame(width: number, height: number, buffer: ArrayBuffer): void;
     receiveVideoFrame(buffer: ArrayBuffer): [number, number] | undefined;
-    receivedOffer(remoteUserId: UserId, remoteDeviceId: DeviceId, messageAgeSec: number, callId: CallId, offerType: OfferType, localDeviceId: DeviceId, remoteSupportsMultiRing: boolean, opaque?: ArrayBuffer, sdp?: string): void;
-    receivedAnswer(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, remoteSupportsMultiRing: boolean, opaque?: ArrayBuffer, sdp?: string): void;
-    receivedIceCandidates(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, candiates: Array<IceCandidateMessage>): void;
+    receivedOffer(remoteUserId: UserId, remoteDeviceId: DeviceId, messageAgeSec: number, callId: CallId, offerType: OfferType, localDeviceId: DeviceId, remoteSupportsMultiRing: boolean, opaque: ArrayBuffer | undefined, sdp: string | undefined, senderIdentityKey: ArrayBuffer, receiverIdentityKey: ArrayBuffer): void;
+    receivedAnswer(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, remoteSupportsMultiRing: boolean, opaque: ArrayBuffer | undefined, sdp: string | undefined, senderIdentityKey: ArrayBuffer, receiverIdentityKey: ArrayBuffer): void;
+    receivedIceCandidates(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, candidates: Array<IceCandidateMessage>): void;
     receivedHangup(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, hangupType: HangupType, hangupDeviceId: DeviceId | null): void;
     receivedBusy(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId): void;
     getAudioInputs(): AudioDevice[];
@@ -212,6 +212,7 @@ export declare enum CallEndedReason {
     Glare = "Glare",
     ReceivedOfferExpired = "ReceivedOfferExpired",
     ReceivedOfferWhileActive = "ReceivedOfferWhileActive",
+    ReceivedOfferWithGlare = "ReceivedOfferWithGlare",
     SignalingFailure = "SignalingFailure",
     ConnectionFailure = "ConnectionFailure",
     InternalFailure = "InternalFailure",
