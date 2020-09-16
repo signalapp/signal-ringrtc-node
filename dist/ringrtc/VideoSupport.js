@@ -157,7 +157,8 @@ class GumVideoCapturer {
         if (!this.canvas || !this.canvasContext || !this.call) {
             return;
         }
-        const { width, height } = this.localPreview.current;
+        const width = this.localPreview.current.videoWidth;
+        const height = this.localPreview.current.videoHeight;
         if (width === 0 || height === 0) {
             return;
         }
