@@ -1,10 +1,15 @@
 export declare class RingRTCType {
     private readonly callManager;
     private _call;
+    private _groupCallByClientId;
     handleOutgoingSignaling: ((remoteUserId: UserId, message: CallingMessage) => Promise<boolean>) | null;
     handleIncomingCall: ((call: Call) => Promise<CallSettings | null>) | null;
     handleAutoEndedIncomingCallRequest: ((remoteUserId: UserId, reason: CallEndedReason) => void) | null;
     handleLogMessage: ((level: CallLogLevel, fileName: string, line: number, message: string) => void) | null;
+    handleSendHttpRequest: ((requestId: number, url: string, method: HttpMethod, headers: {
+        [name: string]: string;
+    }, body: ArrayBuffer | undefined) => void) | null;
+    handleSendCallMessage: ((recipientUuid: ArrayBuffer, message: ArrayBuffer) => void) | null;
     constructor();
     private pollEvery;
     startOutgoingCall(remoteUserId: UserId, isVideoCall: boolean, localDeviceId: DeviceId, settings: CallSettings): Call;
@@ -22,8 +27,22 @@ export declare class RingRTCType {
     onSendHangup(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean, hangupType: HangupType, deviceId: DeviceId | null): void;
     onSendBusy(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean): void;
     private sendSignaling;
+    receivedHttpResponse(requestId: number, status: number, body: ArrayBuffer): void;
+    httpRequestFailed(requestId: number, debugInfo: string | undefined): void;
+    getGroupCall(groupId: ArrayBuffer, observer: GroupCallObserver): GroupCall | undefined;
+    requestMembershipProof(clientId: GroupCallClientId): void;
+    requestGroupMembers(clientId: GroupCallClientId): void;
+    handleConnectionStateChanged(clientId: GroupCallClientId, connectionState: ConnectionState): void;
+    handleJoinStateChanged(clientId: GroupCallClientId, joinState: JoinState): void;
+    handleRemoteDevicesChanged(clientId: GroupCallClientId, remoteDeviceStates: Array<RemoteDeviceState>): void;
+    handleJoinedMembersChanged(clientId: GroupCallClientId, members: Array<ArrayBuffer>): void;
+    handleEnded(clientId: GroupCallClientId, reason: GroupCallEndReason): void;
     onLogMessage(level: number, fileName: string, line: number, message: string): void;
-    handleCallingMessage(remoteUserId: UserId, remoteDeviceId: DeviceId, localDeviceId: DeviceId, messageAgeSec: number, message: CallingMessage, senderIdentityKey: ArrayBuffer, receiverIdentityKey: ArrayBuffer): void;
+    handleCallingMessage(remoteUserId: UserId, remoteUuid: ArrayBuffer | null, remoteDeviceId: DeviceId, localDeviceId: DeviceId, messageAgeSec: number, message: CallingMessage, senderIdentityKey: ArrayBuffer, receiverIdentityKey: ArrayBuffer): void;
+    sendHttpRequest(requestId: number, url: string, method: HttpMethod, headers: {
+        [name: string]: string;
+    }, body: ArrayBuffer | undefined): void;
+    sendCallMessage(recipientUuid: ArrayBuffer, message: ArrayBuffer): void;
     get call(): Call | null;
     getCall(callId: CallId): Call | null;
     accept(callId: CallId, asVideoCall: boolean): void;
@@ -105,6 +124,119 @@ export declare class Call {
     setLowBandwidthMode(enabled: boolean): void;
     private enableOrDisableRenderer;
 }
+export declare type GroupCallClientId = number;
+export declare enum ConnectionState {
+    NotConnected = 0,
+    Connecting = 1,
+    Connected = 2,
+    Reconnecting = 3
+}
+export declare enum JoinState {
+    NotJoined = 0,
+    Joining = 1,
+    Joined = 2
+}
+export declare enum BandwidthMode {
+    Low = 0,
+    Normal = 1
+}
+export declare enum GroupCallEndReason {
+    DeviceExplicitlyDisconnected = 0,
+    ServerExplicitlyDisconnected = 1,
+    SfuClientFailedToJoin = 2,
+    FailedToCreatePeerConnectionFactory = 3,
+    FailedToGenerateCertificate = 4,
+    FailedToCreateOutgoingAudioTrack = 5,
+    FailedToCreatePeerConnection = 6,
+    FailedToCreateDataChannel = 7,
+    FailedToStartPeerConnection = 8,
+    FailedToUpdatePeerConnection = 9,
+    FailedToSetMaxSendBitrate = 10,
+    IceFailedWhileConnecting = 11,
+    IceFailedAfterConnected = 12,
+    ServerChangedDemuxId = 13
+}
+export declare enum HttpMethod {
+    Get = 0,
+    Put = 1,
+    Post = 2
+}
+export declare class LocalDeviceState {
+    connectionState: ConnectionState;
+    joinState: JoinState;
+    audioMuted: boolean;
+    videoMuted: boolean;
+    constructor();
+}
+export declare class RemoteDeviceState {
+    demuxId: number;
+    userId: ArrayBuffer;
+    audioMuted: boolean | undefined;
+    videoMuted: boolean | undefined;
+    speakerIndex: number | undefined;
+    videoAspectRatio: number | undefined;
+    audioLevel: number | undefined;
+    constructor(demuxId: number, userId: ArrayBuffer);
+}
+export declare class GroupMemberInfo {
+    userId: ArrayBuffer;
+    userIdCipherText: ArrayBuffer;
+    constructor(userId: ArrayBuffer, userIdCipherText: ArrayBuffer);
+}
+export declare class RenderedResolution {
+    demuxId: number;
+    width: number;
+    height: number;
+    framerate: number | undefined;
+    constructor(demuxId: number, width: number, height: number, framerate: number | undefined);
+}
+export interface GroupCallObserver {
+    requestMembershipProof(groupCall: GroupCall): void;
+    requestGroupMembers(groupCall: GroupCall): void;
+    onLocalDeviceStateChanged(groupCall: GroupCall): void;
+    onRemoteDeviceStatesChanged(groupCall: GroupCall): void;
+    onJoinedMembersChanged(groupCall: GroupCall): void;
+    onEnded(groupCall: GroupCall, reason: GroupCallEndReason): void;
+}
+export declare class GroupCall {
+    private readonly _callManager;
+    private readonly _observer;
+    private readonly _clientId;
+    get clientId(): GroupCallClientId;
+    private _localDeviceState;
+    private _remoteDeviceStates;
+    private _joinedGroupMembers;
+    constructor(callManager: CallManager, groupId: ArrayBuffer, observer: GroupCallObserver);
+    connect(): void;
+    join(): void;
+    leave(): void;
+    disconnect(): void;
+    getLocalDeviceState(): LocalDeviceState;
+    getRemoteDeviceStates(): Array<RemoteDeviceState> | undefined;
+    getJoinedGroupMembers(): Array<ArrayBuffer> | undefined;
+    setOutgoingAudioMuted(muted: boolean): void;
+    setOutgoingVideoMuted(muted: boolean): void;
+    setBandwidthMode(bandwidthMode: BandwidthMode): void;
+    setRenderedResolutions(resolutions: Array<RenderedResolution>): void;
+    setGroupMembers(members: Array<GroupMemberInfo>): void;
+    setMembershipProof(proof: ArrayBuffer): void;
+    requestMembershipProof(): void;
+    requestGroupMembers(): void;
+    handleConnectionStateChanged(connectionState: ConnectionState): void;
+    handleJoinStateChanged(joinState: JoinState): void;
+    handleRemoteDevicesChanged(remoteDeviceStates: Array<RemoteDeviceState>): void;
+    handleJoinedMembersChanged(members: Array<ArrayBuffer>): void;
+    handleEnded(reason: GroupCallEndReason): void;
+    sendVideoFrame(width: number, height: number, rgbaBuffer: ArrayBuffer): void;
+    getVideoSource(remoteDemuxId: number): GroupCallVideoFrameSource;
+}
+declare class GroupCallVideoFrameSource {
+    private readonly _callManager;
+    private readonly _clientId;
+    private readonly _remoteDemuxId;
+    constructor(callManager: CallManager, clientId: GroupCallClientId, remoteDemuxId: number);
+    receiveVideoFrame(buffer: ArrayBuffer): [number, number] | undefined;
+}
 declare type ProtobufArrayBuffer = ArrayBuffer | {
     toArrayBuffer: () => ArrayBuffer;
 };
@@ -118,6 +250,7 @@ export declare class CallingMessage {
     legacyHangup?: HangupMessage;
     busy?: BusyMessage;
     hangup?: HangupMessage;
+    opaque?: OpaqueMessage;
     supportsMultiRing?: boolean;
     destinationDeviceId?: DeviceId;
 }
@@ -151,6 +284,9 @@ export declare class HangupMessage {
     type?: HangupType;
     deviceId?: DeviceId;
 }
+export declare class OpaqueMessage {
+    data?: ProtobufArrayBuffer;
+}
 export declare enum HangupType {
     Normal = 0,
     Accepted = 1,
@@ -176,6 +312,22 @@ export interface CallManager {
     receivedIceCandidates(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, candidates: Array<IceCandidateMessage>): void;
     receivedHangup(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, hangupType: HangupType, hangupDeviceId: DeviceId | null): void;
     receivedBusy(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId): void;
+    receivedCallMessage(remoteUserId: ArrayBuffer, remoteDeviceId: DeviceId, localDeviceId: DeviceId, data: ArrayBuffer, messageAgeSec: number): void;
+    receivedHttpResponse(requestId: number, status: number, body: ArrayBuffer): void;
+    httpRequestFailed(requestId: number, debugInfo: string | undefined): void;
+    createGroupCallClient(groupId: ArrayBuffer): GroupCallClientId;
+    deleteGroupCallClient(clientId: GroupCallClientId): void;
+    connect(clientId: GroupCallClientId): void;
+    join(clientId: GroupCallClientId): void;
+    leave(clientId: GroupCallClientId): void;
+    disconnect(clientId: GroupCallClientId): void;
+    setOutgoingAudioMuted(clientId: GroupCallClientId, muted: boolean): void;
+    setOutgoingVideoMuted(clientId: GroupCallClientId, muted: boolean): void;
+    setBandwidthMode(clientId: GroupCallClientId, bandwidthMode: BandwidthMode): void;
+    setRenderedResolutions(clientId: GroupCallClientId, resolutions: Array<RenderedResolution>): void;
+    setGroupMembers(clientId: GroupCallClientId, members: Array<GroupMemberInfo>): void;
+    setMembershipProof(clientId: GroupCallClientId, proof: ArrayBuffer): void;
+    receiveGroupCallVideoFrame(clientId: GroupCallClientId, remoteDemuxId: number, buffer: ArrayBuffer): [number, number] | undefined;
     getAudioInputs(): AudioDevice[];
     setAudioInput(index: number): void;
     getAudioOutputs(): AudioDevice[];
@@ -194,6 +346,17 @@ export interface CallManagerCallbacks {
     onSendLegacyHangup(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean, HangupType: HangupType, hangupDeviceId: DeviceId | null): void;
     onSendHangup(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean, HangupType: HangupType, hangupDeviceId: DeviceId | null): void;
     onSendBusy(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean): void;
+    sendCallMessage(recipientUuid: ArrayBuffer, message: ArrayBuffer): void;
+    sendHttpRequest(requestId: number, url: string, method: HttpMethod, headers: {
+        [name: string]: string;
+    }, body: ArrayBuffer | undefined): void;
+    requestMembershipProof(clientId: GroupCallClientId): void;
+    requestGroupMembers(clientId: GroupCallClientId): void;
+    handleConnectionStateChanged(clientId: GroupCallClientId, connectionState: ConnectionState): void;
+    handleJoinStateChanged(clientId: GroupCallClientId, joinState: JoinState): void;
+    handleRemoteDevicesChanged(clientId: GroupCallClientId, remoteDeviceStates: Array<RemoteDeviceState>): void;
+    handleJoinedMembersChanged(clientId: GroupCallClientId, members: Array<ArrayBuffer>): void;
+    handleEnded(clientId: GroupCallClientId, reason: GroupCallEndReason): void;
     onLogMessage(level: number, fileName: string, line: number, message: string): void;
 }
 export declare enum CallState {

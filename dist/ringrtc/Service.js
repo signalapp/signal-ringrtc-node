@@ -26,8 +26,11 @@ class RingRTCType {
         this.handleIncomingCall = null;
         this.handleAutoEndedIncomingCallRequest = null;
         this.handleLogMessage = null;
+        this.handleSendHttpRequest = null;
+        this.handleSendCallMessage = null;
         this.callManager = new Native.CallManager();
         this._call = null;
+        this._groupCallByClientId = new Map();
         this.pollEvery(50);
     }
     pollEvery(intervalMs) {
@@ -228,6 +231,111 @@ class RingRTCType {
             }
         }))();
     }
+    receivedHttpResponse(requestId, status, body) {
+        this.callManager.receivedHttpResponse(requestId, status, body);
+    }
+    httpRequestFailed(requestId, debugInfo) {
+        this.callManager.httpRequestFailed(requestId, debugInfo);
+    }
+    // Group Calls
+    // Called by UX
+    getGroupCall(groupId, observer) {
+        const groupCall = new GroupCall(this.callManager, groupId, observer);
+        this._groupCallByClientId.set(groupCall.clientId, groupCall);
+        return groupCall;
+    }
+    // Called by Rust
+    requestMembershipProof(clientId) {
+        (() => __awaiter(this, void 0, void 0, function* () {
+            yield 0;
+            let groupCall = this._groupCallByClientId.get(clientId);
+            if (!groupCall) {
+                let error = new Error();
+                this.onLogMessage(CallLogLevel.Error, 'Service.ts', 0, 'requestMembershipProof(): GroupCall not found in map!');
+                return;
+            }
+            groupCall.requestMembershipProof();
+        }))();
+    }
+    // Called by Rust
+    requestGroupMembers(clientId) {
+        (() => __awaiter(this, void 0, void 0, function* () {
+            yield 0;
+            let groupCall = this._groupCallByClientId.get(clientId);
+            if (!groupCall) {
+                let error = new Error();
+                this.onLogMessage(CallLogLevel.Error, 'Service.ts', 0, 'requestGroupMembers(): GroupCall not found in map!');
+                return;
+            }
+            groupCall.requestGroupMembers();
+        }))();
+    }
+    // Called by Rust
+    handleConnectionStateChanged(clientId, connectionState) {
+        (() => __awaiter(this, void 0, void 0, function* () {
+            yield 0;
+            let groupCall = this._groupCallByClientId.get(clientId);
+            if (!groupCall) {
+                let error = new Error();
+                this.onLogMessage(CallLogLevel.Error, 'Service.ts', 0, 'handleConnectionStateChanged(): GroupCall not found in map!');
+                return;
+            }
+            groupCall.handleConnectionStateChanged(connectionState);
+        }))();
+    }
+    // Called by Rust
+    handleJoinStateChanged(clientId, joinState) {
+        (() => __awaiter(this, void 0, void 0, function* () {
+            yield 0;
+            let groupCall = this._groupCallByClientId.get(clientId);
+            if (!groupCall) {
+                let error = new Error();
+                this.onLogMessage(CallLogLevel.Error, 'Service.ts', 0, 'handleJoinStateChanged(): GroupCall not found in map!');
+                return;
+            }
+            groupCall.handleJoinStateChanged(joinState);
+        }))();
+    }
+    // Called by Rust
+    handleRemoteDevicesChanged(clientId, remoteDeviceStates) {
+        (() => __awaiter(this, void 0, void 0, function* () {
+            yield 0;
+            let groupCall = this._groupCallByClientId.get(clientId);
+            if (!groupCall) {
+                let error = new Error();
+                this.onLogMessage(CallLogLevel.Error, 'Service.ts', 0, 'handleRemoteDevicesChanged(): GroupCall not found in map!');
+                return;
+            }
+            groupCall.handleRemoteDevicesChanged(remoteDeviceStates);
+        }))();
+    }
+    // Called by Rust
+    handleJoinedMembersChanged(clientId, members) {
+        (() => __awaiter(this, void 0, void 0, function* () {
+            yield 0;
+            let groupCall = this._groupCallByClientId.get(clientId);
+            if (!groupCall) {
+                let error = new Error();
+                this.onLogMessage(CallLogLevel.Error, 'Service.ts', 0, 'handleJoinedMembersChanged(): GroupCall not found in map!');
+                return;
+            }
+            groupCall.handleJoinedMembersChanged(members);
+        }))();
+    }
+    // Called by Rust
+    handleEnded(clientId, reason) {
+        (() => __awaiter(this, void 0, void 0, function* () {
+            yield 0;
+            let groupCall = this._groupCallByClientId.get(clientId);
+            if (!groupCall) {
+                let error = new Error();
+                this.onLogMessage(CallLogLevel.Error, 'Service.ts', 0, 'handleEnded(): GroupCall not found in map!');
+                return;
+            }
+            this._groupCallByClientId.delete(clientId);
+            groupCall.handleEnded(reason);
+        }))();
+    }
     // Called by Rust
     onLogMessage(level, fileName, line, message) {
         if (this.handleLogMessage) {
@@ -236,7 +344,7 @@ class RingRTCType {
     }
     // Called by MessageReceiver
     // tslint:disable-next-line cyclomatic-complexity
-    handleCallingMessage(remoteUserId, remoteDeviceId, localDeviceId, messageAgeSec, message, senderIdentityKey, receiverIdentityKey) {
+    handleCallingMessage(remoteUserId, remoteUuid, remoteDeviceId, localDeviceId, messageAgeSec, message, senderIdentityKey, receiverIdentityKey) {
         const remoteSupportsMultiRing = message.supportsMultiRing || false;
         if (message.destinationDeviceId && message.destinationDeviceId !== localDeviceId) {
             // Drop the message as it isn't for this device, handleIgnoredCall() is not needed.
@@ -288,6 +396,36 @@ class RingRTCType {
         if (message.busy && message.busy.callId) {
             const callId = message.busy.callId;
             this.callManager.receivedBusy(remoteUserId, remoteDeviceId, callId);
+        }
+        if (message.opaque) {
+            if (remoteUuid == null) {
+                this.onLogMessage(CallLogLevel.Error, 'Service.ts', 0, 'handleCallingMessage(): opaque message received without UUID!');
+                return;
+            }
+            const data = to_array_buffer(message.opaque.data);
+            if (data == undefined) {
+                this.onLogMessage(CallLogLevel.Error, 'Service.ts', 0, 'handleCallingMessage(): opaque message received without data!');
+                return;
+            }
+            this.callManager.receivedCallMessage(remoteUuid, remoteDeviceId, localDeviceId, data, messageAgeSec);
+        }
+    }
+    // Called by Rust
+    sendHttpRequest(requestId, url, method, headers, body) {
+        if (this.handleSendHttpRequest) {
+            this.handleSendHttpRequest(requestId, url, method, headers, body);
+        }
+        else {
+            console.log("RingRTC.handleSendHttpRequest is not set!");
+        }
+    }
+    // Called by Rust
+    sendCallMessage(recipientUuid, message) {
+        if (this.handleSendCallMessage) {
+            this.handleSendCallMessage(recipientUuid, message);
+        }
+        else {
+            console.log("RingRTC.handleSendCallMessage is not set!");
         }
     }
     // These are convenience methods.  One could use the Call class instead.
@@ -472,10 +610,12 @@ class Call {
         this._remoteVideoEnabled = enabled;
         this.enableOrDisableRenderer();
     }
+    // With this method, a Call is a VideoFrameSender
     sendVideoFrame(width, height, rgbaBuffer) {
         // This assumes we only have one active all.
         this._callManager.sendVideoFrame(width, height, rgbaBuffer);
     }
+    // With this method, a Call is a VideoFrameSource
     receiveVideoFrame(buffer) {
         // This assumes we only have one active all.
         return this._callManager.receiveVideoFrame(buffer);
@@ -565,6 +705,212 @@ class Call {
     }
 }
 exports.Call = Call;
+// Represents the connection state to a media server for a group call.
+var ConnectionState;
+(function (ConnectionState) {
+    ConnectionState[ConnectionState["NotConnected"] = 0] = "NotConnected";
+    ConnectionState[ConnectionState["Connecting"] = 1] = "Connecting";
+    ConnectionState[ConnectionState["Connected"] = 2] = "Connected";
+    ConnectionState[ConnectionState["Reconnecting"] = 3] = "Reconnecting";
+})(ConnectionState = exports.ConnectionState || (exports.ConnectionState = {}));
+// Represents whether or not a user is joined to a group call and can exchange media.
+var JoinState;
+(function (JoinState) {
+    JoinState[JoinState["NotJoined"] = 0] = "NotJoined";
+    JoinState[JoinState["Joining"] = 1] = "Joining";
+    JoinState[JoinState["Joined"] = 2] = "Joined";
+})(JoinState = exports.JoinState || (exports.JoinState = {}));
+// Bandwidth mode for limiting network bandwidth between the device and media server.
+var BandwidthMode;
+(function (BandwidthMode) {
+    BandwidthMode[BandwidthMode["Low"] = 0] = "Low";
+    BandwidthMode[BandwidthMode["Normal"] = 1] = "Normal";
+})(BandwidthMode = exports.BandwidthMode || (exports.BandwidthMode = {}));
+// If not ended purposely by the user, gives the reason why a group call ended.
+var GroupCallEndReason;
+(function (GroupCallEndReason) {
+    // Normal events
+    GroupCallEndReason[GroupCallEndReason["DeviceExplicitlyDisconnected"] = 0] = "DeviceExplicitlyDisconnected";
+    GroupCallEndReason[GroupCallEndReason["ServerExplicitlyDisconnected"] = 1] = "ServerExplicitlyDisconnected";
+    // Things that can go wrong
+    GroupCallEndReason[GroupCallEndReason["SfuClientFailedToJoin"] = 2] = "SfuClientFailedToJoin";
+    GroupCallEndReason[GroupCallEndReason["FailedToCreatePeerConnectionFactory"] = 3] = "FailedToCreatePeerConnectionFactory";
+    GroupCallEndReason[GroupCallEndReason["FailedToGenerateCertificate"] = 4] = "FailedToGenerateCertificate";
+    GroupCallEndReason[GroupCallEndReason["FailedToCreateOutgoingAudioTrack"] = 5] = "FailedToCreateOutgoingAudioTrack";
+    GroupCallEndReason[GroupCallEndReason["FailedToCreatePeerConnection"] = 6] = "FailedToCreatePeerConnection";
+    GroupCallEndReason[GroupCallEndReason["FailedToCreateDataChannel"] = 7] = "FailedToCreateDataChannel";
+    GroupCallEndReason[GroupCallEndReason["FailedToStartPeerConnection"] = 8] = "FailedToStartPeerConnection";
+    GroupCallEndReason[GroupCallEndReason["FailedToUpdatePeerConnection"] = 9] = "FailedToUpdatePeerConnection";
+    GroupCallEndReason[GroupCallEndReason["FailedToSetMaxSendBitrate"] = 10] = "FailedToSetMaxSendBitrate";
+    GroupCallEndReason[GroupCallEndReason["IceFailedWhileConnecting"] = 11] = "IceFailedWhileConnecting";
+    GroupCallEndReason[GroupCallEndReason["IceFailedAfterConnected"] = 12] = "IceFailedAfterConnected";
+    GroupCallEndReason[GroupCallEndReason["ServerChangedDemuxId"] = 13] = "ServerChangedDemuxId";
+})(GroupCallEndReason = exports.GroupCallEndReason || (exports.GroupCallEndReason = {}));
+// HTTP request methods.
+var HttpMethod;
+(function (HttpMethod) {
+    HttpMethod[HttpMethod["Get"] = 0] = "Get";
+    HttpMethod[HttpMethod["Put"] = 1] = "Put";
+    HttpMethod[HttpMethod["Post"] = 2] = "Post";
+})(HttpMethod = exports.HttpMethod || (exports.HttpMethod = {}));
+// The local device state for a group call.
+class LocalDeviceState {
+    constructor() {
+        this.connectionState = ConnectionState.NotConnected;
+        this.joinState = JoinState.NotJoined;
+        // By default audio and video are muted.
+        this.audioMuted = true;
+        this.videoMuted = true;
+    }
+}
+exports.LocalDeviceState = LocalDeviceState;
+// All remote devices in a group call and their associated state.
+class RemoteDeviceState {
+    constructor(demuxId, userId) {
+        this.demuxId = demuxId;
+        this.userId = userId;
+    }
+}
+exports.RemoteDeviceState = RemoteDeviceState;
+// Used to communicate the group membership to RingRTC for a group call.
+class GroupMemberInfo {
+    constructor(userId, userIdCipherText) {
+        this.userId = userId;
+        this.userIdCipherText = userIdCipherText;
+    }
+}
+exports.GroupMemberInfo = GroupMemberInfo;
+// Used for the application to communicate the actual resolutions of
+// each device in a group call to RingRTC and the SFU.
+class RenderedResolution {
+    constructor(demuxId, width, height, framerate) {
+        this.demuxId = demuxId;
+        this.width = width;
+        this.height = height;
+        this.framerate = framerate;
+    }
+}
+exports.RenderedResolution = RenderedResolution;
+class GroupCall {
+    // Called by UI via RingRTC object
+    constructor(callManager, groupId, observer) {
+        this._callManager = callManager;
+        this._observer = observer;
+        this._localDeviceState = new LocalDeviceState();
+        this._clientId = this._callManager.createGroupCallClient(groupId);
+    }
+    get clientId() {
+        return this._clientId;
+    }
+    // Called by UI
+    connect() {
+        this._callManager.connect(this._clientId);
+    }
+    // Called by UI
+    join() {
+        this._callManager.join(this._clientId);
+    }
+    // Called by UI
+    leave() {
+        this._callManager.leave(this._clientId);
+    }
+    // Called by UI
+    disconnect() {
+        this._callManager.disconnect(this._clientId);
+    }
+    // Called by UI
+    getLocalDeviceState() {
+        return this._localDeviceState;
+    }
+    // Called by UI
+    getRemoteDeviceStates() {
+        return this._remoteDeviceStates;
+    }
+    // Called by UI
+    getJoinedGroupMembers() {
+        return this._joinedGroupMembers;
+    }
+    // Called by UI
+    setOutgoingAudioMuted(muted) {
+        this._localDeviceState.audioMuted = muted;
+        this._callManager.setOutgoingAudioMuted(this._clientId, muted);
+    }
+    // Called by UI
+    setOutgoingVideoMuted(muted) {
+        this._localDeviceState.videoMuted = muted;
+        this._callManager.setOutgoingVideoMuted(this._clientId, muted);
+    }
+    // Called by UI
+    setBandwidthMode(bandwidthMode) {
+        this._callManager.setBandwidthMode(this._clientId, bandwidthMode);
+    }
+    // Called by UI
+    setRenderedResolutions(resolutions) {
+        this._callManager.setRenderedResolutions(this._clientId, resolutions);
+    }
+    // Called by UI
+    setGroupMembers(members) {
+        this._callManager.setGroupMembers(this._clientId, members);
+    }
+    // Called by UI
+    setMembershipProof(proof) {
+        this._callManager.setMembershipProof(this._clientId, proof);
+    }
+    // Called by Rust via RingRTC object
+    requestMembershipProof() {
+        this._observer.requestMembershipProof(this);
+    }
+    // Called by Rust via RingRTC object
+    requestGroupMembers() {
+        this._observer.requestGroupMembers(this);
+    }
+    // Called by Rust via RingRTC object
+    handleConnectionStateChanged(connectionState) {
+        this._localDeviceState.connectionState = connectionState;
+        this._observer.onLocalDeviceStateChanged(this);
+    }
+    // Called by Rust via RingRTC object
+    handleJoinStateChanged(joinState) {
+        this._localDeviceState.joinState = joinState;
+        this._observer.onLocalDeviceStateChanged(this);
+    }
+    // Called by Rust via RingRTC object
+    handleRemoteDevicesChanged(remoteDeviceStates) {
+        this._remoteDeviceStates = remoteDeviceStates;
+        this._observer.onRemoteDeviceStatesChanged(this);
+    }
+    // Called by Rust via RingRTC object
+    handleJoinedMembersChanged(members) {
+        this._joinedGroupMembers = members;
+        this._observer.onJoinedMembersChanged(this);
+    }
+    // Called by Rust via RingRTC object
+    handleEnded(reason) {
+        this._observer.onEnded(this, reason);
+        this._callManager.deleteGroupCallClient(this._clientId);
+    }
+    // With this, a GroupCall is a VideoFrameSender
+    sendVideoFrame(width, height, rgbaBuffer) {
+        // This assumes we only have one active all.
+        this._callManager.sendVideoFrame(width, height, rgbaBuffer);
+    }
+    // With this, a GroupCall can provide a VideoFrameSource for each remote device.
+    getVideoSource(remoteDemuxId) {
+        return new GroupCallVideoFrameSource(this._callManager, this._clientId, remoteDemuxId);
+    }
+}
+exports.GroupCall = GroupCall;
+// Implements VideoSource for use in CanvasVideoRenderer
+class GroupCallVideoFrameSource {
+    constructor(callManager, clientId, remoteDemuxId) {
+        this._callManager = callManager;
+        this._clientId = clientId;
+        this._remoteDemuxId = remoteDemuxId;
+    }
+    receiveVideoFrame(buffer) {
+        return this._callManager.receiveGroupCallVideoFrame(this._clientId, this._remoteDemuxId, buffer);
+    }
+}
 function to_array_buffer(pbab) {
     if (!pbab) {
         return pbab;
@@ -597,6 +943,9 @@ exports.BusyMessage = BusyMessage;
 class HangupMessage {
 }
 exports.HangupMessage = HangupMessage;
+class OpaqueMessage {
+}
+exports.OpaqueMessage = OpaqueMessage;
 var HangupType;
 (function (HangupType) {
     HangupType[HangupType["Normal"] = 0] = "Normal";
