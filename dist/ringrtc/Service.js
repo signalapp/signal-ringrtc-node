@@ -627,7 +627,7 @@ class Call {
         if (!this.outgoingVideoEnabled) {
             this._videoCapturer.disable();
             if (this.state === CallState.Accepted) {
-                this.sendVideoStatus(false);
+                this.setOutgoingVideoEnabled(false);
             }
             return;
         }
@@ -638,7 +638,7 @@ class Call {
                 break;
             case CallState.Accepted:
                 this._videoCapturer.enableCaptureAndSend(this);
-                this.sendVideoStatus(true);
+                this.setOutgoingVideoEnabled(true);
                 break;
             case CallState.Reconnecting:
                 this._videoCapturer.enableCaptureAndSend(this);
@@ -650,14 +650,14 @@ class Call {
             default:
         }
     }
-    sendVideoStatus(enabled) {
+    setOutgoingVideoEnabled(enabled) {
         // tslint:disable no-floating-promises
         (() => __awaiter(this, void 0, void 0, function* () {
             // This is a silly way of causing a deadlock.
             // tslint:disable-next-line await-promise
             yield 0;
             try {
-                this._callManager.sendVideoStatus(enabled);
+                this._callManager.setOutgoingVideoEnabled(enabled);
             }
             catch (_a) {
                 // We may not have an active connection any more.

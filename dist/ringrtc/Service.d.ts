@@ -120,7 +120,7 @@ export declare class Call {
     sendVideoFrame(width: number, height: number, rgbaBuffer: ArrayBuffer): void;
     receiveVideoFrame(buffer: ArrayBuffer): [number, number] | undefined;
     private enableOrDisableCapturer;
-    private sendVideoStatus;
+    private setOutgoingVideoEnabled;
     setLowBandwidthMode(enabled: boolean): void;
     private enableOrDisableRenderer;
 }
@@ -303,7 +303,7 @@ export interface CallManager {
     signalingMessageSent(callId: CallId): void;
     signalingMessageSendFailed(callId: CallId): void;
     setOutgoingAudioEnabled(enabled: boolean): void;
-    sendVideoStatus(enabled: boolean): void;
+    setOutgoingVideoEnabled(enabled: boolean): void;
     setLowBandwidthMode(enabled: boolean): void;
     sendVideoFrame(width: number, height: number, buffer: ArrayBuffer): void;
     receiveVideoFrame(buffer: ArrayBuffer): [number, number] | undefined;
