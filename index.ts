@@ -29,11 +29,11 @@ export {
     OfferType,
     OpaqueMessage,
     RemoteDeviceState,
-    RenderedResolution,
     RingRTCType,
     UserId,
     VideoCapturer,
-    VideoRenderer
+    VideoRenderer,
+    VideoRequest
 } from './ringrtc/Service';
 
 export {
