@@ -1,7 +1,17 @@
+declare type GroupCallUserId = ArrayBuffer;
+export declare class PeekInfo {
+    joinedMembers: Array<GroupCallUserId>;
+    creator?: GroupCallUserId;
+    eraId?: string;
+    maxDevices?: number;
+    deviceCount: number;
+    constructor();
+}
 export declare class RingRTCType {
     private readonly callManager;
     private _call;
     private _groupCallByClientId;
+    private _peekRequests;
     handleOutgoingSignaling: ((remoteUserId: UserId, message: CallingMessage) => Promise<boolean>) | null;
     handleIncomingCall: ((call: Call) => Promise<CallSettings | null>) | null;
     handleAutoEndedIncomingCallRequest: ((remoteUserId: UserId, reason: CallEndedReason) => void) | null;
@@ -29,13 +39,15 @@ export declare class RingRTCType {
     private sendSignaling;
     receivedHttpResponse(requestId: number, status: number, body: ArrayBuffer): void;
     httpRequestFailed(requestId: number, debugInfo: string | undefined): void;
-    getGroupCall(groupId: ArrayBuffer, observer: GroupCallObserver): GroupCall | undefined;
+    getGroupCall(groupId: ArrayBuffer, sfuUrl: string, observer: GroupCallObserver): GroupCall | undefined;
+    peekGroupCall(sfu_url: string, membership_proof: ArrayBuffer, group_members: Array<GroupMemberInfo>): Promise<PeekInfo>;
     requestMembershipProof(clientId: GroupCallClientId): void;
     requestGroupMembers(clientId: GroupCallClientId): void;
     handleConnectionStateChanged(clientId: GroupCallClientId, connectionState: ConnectionState): void;
     handleJoinStateChanged(clientId: GroupCallClientId, joinState: JoinState): void;
     handleRemoteDevicesChanged(clientId: GroupCallClientId, remoteDeviceStates: Array<RemoteDeviceState>): void;
-    handleJoinedMembersChanged(clientId: GroupCallClientId, members: Array<ArrayBuffer>): void;
+    handlePeekChanged(clientId: GroupCallClientId, info: PeekInfo): void;
+    handlePeekResponse(request_id: number, info: PeekInfo): void;
     handleEnded(clientId: GroupCallClientId, reason: GroupCallEndReason): void;
     onLogMessage(level: number, fileName: string, line: number, message: string): void;
     handleCallingMessage(remoteUserId: UserId, remoteUuid: ArrayBuffer | null, remoteDeviceId: DeviceId, localDeviceId: DeviceId, messageAgeSec: number, message: CallingMessage, senderIdentityKey: ArrayBuffer, receiverIdentityKey: ArrayBuffer): void;
@@ -143,10 +155,10 @@ export declare enum BandwidthMode {
 export declare enum GroupCallEndReason {
     DeviceExplicitlyDisconnected = 0,
     ServerExplicitlyDisconnected = 1,
-    SfuClientFailedToJoin = 2,
-    FailedToCreatePeerConnectionFactory = 3,
-    FailedToGenerateCertificate = 4,
-    FailedToCreateOutgoingAudioTrack = 5,
+    CallManagerIsBusy = 2,
+    SfuClientFailedToJoin = 3,
+    FailedToCreatePeerConnectionFactory = 4,
+    FailedToGenerateCertificate = 5,
     FailedToCreatePeerConnection = 6,
     FailedToCreateDataChannel = 7,
     FailedToStartPeerConnection = 8,
@@ -154,12 +166,14 @@ export declare enum GroupCallEndReason {
     FailedToSetMaxSendBitrate = 10,
     IceFailedWhileConnecting = 11,
     IceFailedAfterConnected = 12,
-    ServerChangedDemuxId = 13
+    ServerChangedDemuxId = 13,
+    HasMaxDevices = 14
 }
 export declare enum HttpMethod {
     Get = 0,
     Put = 1,
-    Post = 2
+    Post = 2,
+    Delete = 3
 }
 export declare class LocalDeviceState {
     connectionState: ConnectionState;
@@ -171,19 +185,20 @@ export declare class LocalDeviceState {
 export declare class RemoteDeviceState {
     demuxId: number;
     userId: ArrayBuffer;
+    mediaKeysReceived: boolean;
     audioMuted: boolean | undefined;
     videoMuted: boolean | undefined;
-    speakerIndex: number | undefined;
     videoAspectRatio: number | undefined;
-    audioLevel: number | undefined;
-    constructor(demuxId: number, userId: ArrayBuffer);
+    addedTime: number | undefined;
+    speakerTime: number | undefined;
+    constructor(demuxId: number, userId: ArrayBuffer, mediaKeysReceived: boolean);
 }
 export declare class GroupMemberInfo {
     userId: ArrayBuffer;
     userIdCipherText: ArrayBuffer;
     constructor(userId: ArrayBuffer, userIdCipherText: ArrayBuffer);
 }
-export declare class RenderedResolution {
+export declare class VideoRequest {
     demuxId: number;
     width: number;
     height: number;
@@ -195,7 +210,7 @@ export interface GroupCallObserver {
     requestGroupMembers(groupCall: GroupCall): void;
     onLocalDeviceStateChanged(groupCall: GroupCall): void;
     onRemoteDeviceStatesChanged(groupCall: GroupCall): void;
-    onJoinedMembersChanged(groupCall: GroupCall): void;
+    onPeekChanged(groupCall: GroupCall): void;
     onEnded(groupCall: GroupCall, reason: GroupCallEndReason): void;
 }
 export declare class GroupCall {
@@ -205,19 +220,20 @@ export declare class GroupCall {
     get clientId(): GroupCallClientId;
     private _localDeviceState;
     private _remoteDeviceStates;
-    private _joinedGroupMembers;
-    constructor(callManager: CallManager, groupId: ArrayBuffer, observer: GroupCallObserver);
+    private _peekInfo;
+    constructor(callManager: CallManager, groupId: ArrayBuffer, sfuUrl: string, observer: GroupCallObserver);
     connect(): void;
     join(): void;
     leave(): void;
     disconnect(): void;
     getLocalDeviceState(): LocalDeviceState;
     getRemoteDeviceStates(): Array<RemoteDeviceState> | undefined;
-    getJoinedGroupMembers(): Array<ArrayBuffer> | undefined;
+    getPeekInfo(): PeekInfo | undefined;
     setOutgoingAudioMuted(muted: boolean): void;
     setOutgoingVideoMuted(muted: boolean): void;
+    resendMediaKeys(): void;
     setBandwidthMode(bandwidthMode: BandwidthMode): void;
-    setRenderedResolutions(resolutions: Array<RenderedResolution>): void;
+    requestVideo(resolutions: Array<VideoRequest>): void;
     setGroupMembers(members: Array<GroupMemberInfo>): void;
     setMembershipProof(proof: ArrayBuffer): void;
     requestMembershipProof(): void;
@@ -225,16 +241,17 @@ export declare class GroupCall {
     handleConnectionStateChanged(connectionState: ConnectionState): void;
     handleJoinStateChanged(joinState: JoinState): void;
     handleRemoteDevicesChanged(remoteDeviceStates: Array<RemoteDeviceState>): void;
-    handleJoinedMembersChanged(members: Array<ArrayBuffer>): void;
+    handlePeekChanged(info: PeekInfo): void;
     handleEnded(reason: GroupCallEndReason): void;
     sendVideoFrame(width: number, height: number, rgbaBuffer: ArrayBuffer): void;
     getVideoSource(remoteDemuxId: number): GroupCallVideoFrameSource;
+    setRemoteAspectRatio(remoteDemuxId: number, aspectRatio: number): void;
 }
 declare class GroupCallVideoFrameSource {
     private readonly _callManager;
-    private readonly _clientId;
+    private readonly _groupCall;
     private readonly _remoteDemuxId;
-    constructor(callManager: CallManager, clientId: GroupCallClientId, remoteDemuxId: number);
+    constructor(callManager: CallManager, groupCall: GroupCall, remoteDemuxId: number);
     receiveVideoFrame(buffer: ArrayBuffer): [number, number] | undefined;
 }
 declare type ProtobufArrayBuffer = ArrayBuffer | {
@@ -315,7 +332,7 @@ export interface CallManager {
     receivedCallMessage(remoteUserId: ArrayBuffer, remoteDeviceId: DeviceId, localDeviceId: DeviceId, data: ArrayBuffer, messageAgeSec: number): void;
     receivedHttpResponse(requestId: number, status: number, body: ArrayBuffer): void;
     httpRequestFailed(requestId: number, debugInfo: string | undefined): void;
-    createGroupCallClient(groupId: ArrayBuffer): GroupCallClientId;
+    createGroupCallClient(groupId: ArrayBuffer, sfuUrl: string): GroupCallClientId;
     deleteGroupCallClient(clientId: GroupCallClientId): void;
     connect(clientId: GroupCallClientId): void;
     join(clientId: GroupCallClientId): void;
@@ -323,11 +340,13 @@ export interface CallManager {
     disconnect(clientId: GroupCallClientId): void;
     setOutgoingAudioMuted(clientId: GroupCallClientId, muted: boolean): void;
     setOutgoingVideoMuted(clientId: GroupCallClientId, muted: boolean): void;
+    resendMediaKeys(clientId: GroupCallClientId): void;
     setBandwidthMode(clientId: GroupCallClientId, bandwidthMode: BandwidthMode): void;
-    setRenderedResolutions(clientId: GroupCallClientId, resolutions: Array<RenderedResolution>): void;
+    requestVideo(clientId: GroupCallClientId, resolutions: Array<VideoRequest>): void;
     setGroupMembers(clientId: GroupCallClientId, members: Array<GroupMemberInfo>): void;
     setMembershipProof(clientId: GroupCallClientId, proof: ArrayBuffer): void;
     receiveGroupCallVideoFrame(clientId: GroupCallClientId, remoteDemuxId: number, buffer: ArrayBuffer): [number, number] | undefined;
+    peekGroupCall(requestId: number, sfu_url: string, membership_proof: ArrayBuffer, group_members: Array<GroupMemberInfo>): Promise<PeekInfo>;
     getAudioInputs(): AudioDevice[];
     setAudioInput(index: number): void;
     getAudioOutputs(): AudioDevice[];
@@ -355,7 +374,8 @@ export interface CallManagerCallbacks {
     handleConnectionStateChanged(clientId: GroupCallClientId, connectionState: ConnectionState): void;
     handleJoinStateChanged(clientId: GroupCallClientId, joinState: JoinState): void;
     handleRemoteDevicesChanged(clientId: GroupCallClientId, remoteDeviceStates: Array<RemoteDeviceState>): void;
-    handleJoinedMembersChanged(clientId: GroupCallClientId, members: Array<ArrayBuffer>): void;
+    handlePeekChanged(clientId: GroupCallClientId, info: PeekInfo): void;
+    handlePeekResponse(request_id: number, info: PeekInfo): void;
     handleEnded(clientId: GroupCallClientId, reason: GroupCallEndReason): void;
     onLogMessage(level: number, fileName: string, line: number, message: string): void;
 }
