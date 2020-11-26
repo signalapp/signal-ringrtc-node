@@ -189,8 +189,8 @@ export declare class RemoteDeviceState {
     audioMuted: boolean | undefined;
     videoMuted: boolean | undefined;
     videoAspectRatio: number | undefined;
-    addedTime: number | undefined;
-    speakerTime: number | undefined;
+    addedTime: string | undefined;
+    speakerTime: string | undefined;
     constructor(demuxId: number, userId: ArrayBuffer, mediaKeysReceived: boolean);
 }
 export declare class GroupMemberInfo {
