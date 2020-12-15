@@ -55,6 +55,32 @@ class GumVideoCapturer {
             return cameras;
         });
     }
+    // This helps prevent concurrent calls to `getUserMedia`.
+    getUserMedia() {
+        if (!this.getUserMediaPromise) {
+            this.getUserMediaPromise = window.navigator.mediaDevices
+                .getUserMedia({
+                audio: false,
+                video: {
+                    deviceId: this.preferredDeviceId,
+                    width: {
+                        max: this.maxWidth,
+                    },
+                    height: {
+                        max: this.maxHeight,
+                    },
+                    frameRate: {
+                        max: this.maxFramerate,
+                    },
+                },
+            })
+                .then(mediaStream => {
+                delete this.getUserMediaPromise;
+                return mediaStream;
+            });
+        }
+        return this.getUserMediaPromise;
+    }
     startCapturing() {
         return __awaiter(this, void 0, void 0, function* () {
             if (this.capturing) {
@@ -63,21 +89,7 @@ class GumVideoCapturer {
             this.capturing = true;
             this.capturingStartTime = Date.now();
             try {
-                const mediaStream = yield window.navigator.mediaDevices.getUserMedia({
-                    audio: false,
-                    video: {
-                        deviceId: this.preferredDeviceId,
-                        width: {
-                            max: this.maxWidth,
-                        },
-                        height: {
-                            max: this.maxHeight,
-                        },
-                        frameRate: {
-                            max: this.maxFramerate,
-                        },
-                    },
-                });
+                const mediaStream = yield this.getUserMedia();
                 // We could have been disabled between when we requested the stream
                 // and when we got it.
                 if (!this.capturing) {

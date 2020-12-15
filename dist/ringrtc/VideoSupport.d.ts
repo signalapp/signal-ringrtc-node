@@ -13,6 +13,7 @@ export declare class GumVideoCapturer {
     private readonly maxFramerate;
     private localPreview?;
     private capturing;
+    private getUserMediaPromise?;
     private sender?;
     private mediaStream?;
     private canvas?;
@@ -28,6 +29,7 @@ export declare class GumVideoCapturer {
     disable(): void;
     setPreferredDevice(deviceId: string): Promise<void>;
     enumerateDevices(): Promise<MediaDeviceInfo[]>;
+    private getUserMedia;
     private startCapturing;
     private stopCapturing;
     private startSending;
