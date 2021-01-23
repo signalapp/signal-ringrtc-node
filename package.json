@@ -1,6 +1,6 @@
 {
   "name": "ringrtc",
-  "version": "2.8.9",
+  "version": "2.9.1",
   "description": "Signal Messenger voice and video calling library.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -17,7 +17,7 @@
     "format": "prettier --write \"*.{css,js,json,md,scss,ts,tsx}\" \"./**/*.{css,js,json,md,scss,ts,tsx}\""
   },
   "author": "",
-  "license": "ISC",
+  "license": "AGPL-3.0-only",
   "dependencies": {},
   "devDependencies": {
     "@types/chai": "4.2.7",
@@ -25,7 +25,7 @@
     "@types/node": "13.1.8",
     "@types/uuid": "^8.3.0",
     "chai": "4.2.0",
-    "electron": "11.1.0",
+    "electron": "8.5.2",
     "electron-mocha": "8.1.1",
     "eslint": "4.18.2",
     "eslint-config-airbnb-base": "12.1.0",

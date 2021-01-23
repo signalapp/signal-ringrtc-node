@@ -1,9 +1,7 @@
 "use strict";
 //
-// Copyright (C) 2020 Signal Messenger, LLC.
-// All rights reserved.
-//
-// SPDX-License-Identifier: GPL-3.0-only
+// Copyright 2019-2021 Signal Messenger, LLC
+// SPDX-License-Identifier: AGPL-3.0-only
 //
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
@@ -121,7 +119,7 @@ class RingRTCType {
     }
     proceed(callId, settings) {
         silly_deadlock_protection(() => {
-            this.callManager.proceed(callId, settings.iceServer.username || '', settings.iceServer.password || '', settings.iceServer.urls, settings.hideIp);
+            this.callManager.proceed(callId, settings.iceServer.username || '', settings.iceServer.password || '', settings.iceServer.urls, settings.hideIp, settings.bandwidthMode);
         });
     }
     // Called by Rust
@@ -178,22 +176,20 @@ class RingRTCType {
         }
     }
     // Called by Rust
-    onSendOffer(remoteUserId, remoteDeviceId, callId, broadcast, offerType, opaque, sdp) {
+    onSendOffer(remoteUserId, remoteDeviceId, callId, broadcast, offerType, opaque) {
         const message = new CallingMessage();
         message.offer = new OfferMessage();
         message.offer.callId = callId;
         message.offer.type = offerType;
         message.offer.opaque = opaque;
-        message.offer.sdp = sdp;
         this.sendSignaling(remoteUserId, remoteDeviceId, callId, broadcast, message);
     }
     // Called by Rust
-    onSendAnswer(remoteUserId, remoteDeviceId, callId, broadcast, opaque, sdp) {
+    onSendAnswer(remoteUserId, remoteDeviceId, callId, broadcast, opaque) {
         const message = new CallingMessage();
         message.answer = new AnswerMessage();
         message.answer.callId = callId;
         message.answer.opaque = opaque;
-        message.answer.sdp = sdp;
         this.sendSignaling(remoteUserId, remoteDeviceId, callId, broadcast, message);
     }
     // Called by Rust
@@ -203,11 +199,7 @@ class RingRTCType {
         for (const candidate of candidates) {
             const copy = new IceCandidateMessage();
             copy.callId = callId;
-            // TODO: Remove this once all old clients are gone (along with .sdp below)
-            copy.mid = "audio";
-            copy.line = 0;
-            copy.opaque = candidate.opaque;
-            copy.sdp = candidate.sdp;
+            copy.opaque = candidate;
             message.iceCandidates.push(copy);
         }
         this.sendSignaling(remoteUserId, remoteDeviceId, callId, broadcast, message);
@@ -406,15 +398,25 @@ class RingRTCType {
         if (message.offer && message.offer.callId) {
             const callId = message.offer.callId;
             const opaque = to_array_buffer(message.offer.opaque);
-            const sdp = message.offer.sdp;
+            // opaque is required. sdp is obsolete, but it might still come with opaque.
+            if (!opaque) {
+                // TODO: Remove once the proto is updated to only support opaque and require it.
+                this.onLogMessage(CallLogLevel.Error, 'Service.ts', 0, 'handleCallingMessage(): opaque not received for offer, remote should update');
+                return;
+            }
             const offerType = message.offer.type || OfferType.AudioCall;
-            this.callManager.receivedOffer(remoteUserId, remoteDeviceId, localDeviceId, messageAgeSec, callId, offerType, remoteSupportsMultiRing, opaque, sdp, senderIdentityKey, receiverIdentityKey);
+            this.callManager.receivedOffer(remoteUserId, remoteDeviceId, localDeviceId, messageAgeSec, callId, offerType, remoteSupportsMultiRing, opaque, senderIdentityKey, receiverIdentityKey);
         }
         if (message.answer && message.answer.callId) {
             const callId = message.answer.callId;
             const opaque = to_array_buffer(message.answer.opaque);
-            const sdp = message.answer.sdp;
-            this.callManager.receivedAnswer(remoteUserId, remoteDeviceId, callId, remoteSupportsMultiRing, opaque, sdp, senderIdentityKey, receiverIdentityKey);
+            // opaque is required. sdp is obsolete, but it might still come with opaque.
+            if (!opaque) {
+                // TODO: Remove once the proto is updated to only support opaque and require it.
+                this.onLogMessage(CallLogLevel.Error, 'Service.ts', 0, 'handleCallingMessage(): opaque not received for answer, remote should update');
+                return;
+            }
+            this.callManager.receivedAnswer(remoteUserId, remoteDeviceId, callId, remoteSupportsMultiRing, opaque, senderIdentityKey, receiverIdentityKey);
         }
         if (message.iceCandidates && message.iceCandidates.length > 0) {
             // We assume they all have the same .callId
@@ -422,15 +424,19 @@ class RingRTCType {
             // We have to copy them to do the .toArrayBuffer() thing.
             const candidates = [];
             for (const candidate of message.iceCandidates) {
-                const copy = new IceCandidateMessage();
-                // TODO: Remove this once all old clients are gone (along with .sdp below)
-                // Actually, I don't think we need this at all, but it's safer just to leave it
-                // temporariliy.
-                copy.mid = "audio";
-                copy.line = 0;
-                copy.opaque = to_array_buffer(candidate.opaque);
-                copy.sdp = candidate.sdp;
-                candidates.push(copy);
+                const copy = to_array_buffer(candidate.opaque);
+                if (copy) {
+                    candidates.push(copy);
+                }
+                else {
+                    // TODO: Remove once the proto is updated to only support opaque and require it.
+                    this.onLogMessage(CallLogLevel.Error, 'Service.ts', 0, 'handleCallingMessage(): opaque not received for ice candidate, remote should update');
+                    continue;
+                }
+            }
+            if (candidates.length == 0) {
+                this.onLogMessage(CallLogLevel.Warn, 'Service.ts', 0, 'handleCallingMessage(): No ice candidates in ice message, remote should update');
+                return;
             }
             this.callManager.receivedIceCandidates(remoteUserId, remoteDeviceId, callId, candidates);
         }
@@ -708,10 +714,10 @@ class Call {
             }
         });
     }
-    setLowBandwidthMode(enabled) {
+    updateBandwidthMode(bandwidthMode) {
         silly_deadlock_protection(() => {
             try {
-                this._callManager.setLowBandwidthMode(enabled);
+                this._callManager.updateBandwidthMode(bandwidthMode);
             }
             catch (_a) {
                 // We may not have an active connection any more.
@@ -759,12 +765,6 @@ var JoinState;
     JoinState[JoinState["Joining"] = 1] = "Joining";
     JoinState[JoinState["Joined"] = 2] = "Joined";
 })(JoinState = exports.JoinState || (exports.JoinState = {}));
-// Bandwidth mode for limiting network bandwidth between the device and media server.
-var BandwidthMode;
-(function (BandwidthMode) {
-    BandwidthMode[BandwidthMode["Low"] = 0] = "Low";
-    BandwidthMode[BandwidthMode["Normal"] = 1] = "Normal";
-})(BandwidthMode = exports.BandwidthMode || (exports.BandwidthMode = {}));
 // If not ended purposely by the user, gives the reason why a group call ended.
 var GroupCallEndReason;
 (function (GroupCallEndReason) {
@@ -1023,6 +1023,12 @@ var HangupType;
     HangupType[HangupType["Busy"] = 3] = "Busy";
     HangupType[HangupType["NeedPermission"] = 4] = "NeedPermission";
 })(HangupType = exports.HangupType || (exports.HangupType = {}));
+var BandwidthMode;
+(function (BandwidthMode) {
+    BandwidthMode[BandwidthMode["VeryLow"] = 0] = "VeryLow";
+    BandwidthMode[BandwidthMode["Low"] = 1] = "Low";
+    BandwidthMode[BandwidthMode["Normal"] = 2] = "Normal";
+})(BandwidthMode = exports.BandwidthMode || (exports.BandwidthMode = {}));
 var CallState;
 (function (CallState) {
     CallState["Prering"] = "init";

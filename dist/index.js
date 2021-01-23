@@ -1,9 +1,7 @@
 "use strict";
 //
-// Copyright (C) 2020 Signal Messenger, LLC.
-// All rights reserved.
-//
-// SPDX-License-Identifier: GPL-3.0-only
+// Copyright 2019-2021 Signal Messenger, LLC
+// SPDX-License-Identifier: AGPL-3.0-only
 //
 Object.defineProperty(exports, "__esModule", { value: true });
 var Service_1 = require("./ringrtc/Service");
