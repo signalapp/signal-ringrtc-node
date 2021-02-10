@@ -17,6 +17,57 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const os = require('os');
 // tslint:disable-next-line no-var-requires no-require-imports
 const Native = require('../../build/' + os.platform() + '/libringrtc.node');
+// tslint:disable-next-line no-unnecessary-class
+class NativeCallManager {
+    constructor() {
+        const callEndpoint = Native.createCallEndpoint();
+        Object.defineProperty(this, Native.callEndpointPropertyKey, {
+            value: callEndpoint,
+        });
+    }
+}
+// Mirror methods onto NativeCallManager.
+// This is done through direct assignment rather than wrapper methods to avoid indirection.
+NativeCallManager.prototype.createOutgoingCall = Native.cm_createOutgoingCall;
+NativeCallManager.prototype.proceed = Native.cm_proceed;
+NativeCallManager.prototype.accept = Native.cm_accept;
+NativeCallManager.prototype.ignore = Native.cm_ignore;
+NativeCallManager.prototype.hangup = Native.cm_hangup;
+NativeCallManager.prototype.signalingMessageSent = Native.cm_signalingMessageSent;
+NativeCallManager.prototype.signalingMessageSendFailed = Native.cm_signalingMessageSendFailed;
+NativeCallManager.prototype.updateBandwidthMode = Native.cm_updateBandwidthMode;
+NativeCallManager.prototype.receivedOffer = Native.cm_receivedOffer;
+NativeCallManager.prototype.receivedAnswer = Native.cm_receivedAnswer;
+NativeCallManager.prototype.receivedIceCandidates = Native.cm_receivedIceCandidates;
+NativeCallManager.prototype.receivedHangup = Native.cm_receivedHangup;
+NativeCallManager.prototype.receivedBusy = Native.cm_receivedBusy;
+NativeCallManager.prototype.receivedCallMessage = Native.cm_receivedCallMessage;
+NativeCallManager.prototype.receivedHttpResponse = Native.cm_receivedHttpResponse;
+NativeCallManager.prototype.httpRequestFailed = Native.cm_httpRequestFailed;
+NativeCallManager.prototype.setOutgoingAudioEnabled = Native.cm_setOutgoingAudioEnabled;
+NativeCallManager.prototype.setOutgoingVideoEnabled = Native.cm_setOutgoingVideoEnabled;
+NativeCallManager.prototype.sendVideoFrame = Native.cm_sendVideoFrame;
+NativeCallManager.prototype.receiveVideoFrame = Native.cm_receiveVideoFrame;
+NativeCallManager.prototype.receiveGroupCallVideoFrame = Native.cm_receiveGroupCallVideoFrame;
+NativeCallManager.prototype.createGroupCallClient = Native.cm_createGroupCallClient;
+NativeCallManager.prototype.deleteGroupCallClient = Native.cm_deleteGroupCallClient;
+NativeCallManager.prototype.connect = Native.cm_connect;
+NativeCallManager.prototype.join = Native.cm_join;
+NativeCallManager.prototype.leave = Native.cm_leave;
+NativeCallManager.prototype.disconnect = Native.cm_disconnect;
+NativeCallManager.prototype.setOutgoingAudioMuted = Native.cm_setOutgoingAudioMuted;
+NativeCallManager.prototype.setOutgoingVideoMuted = Native.cm_setOutgoingVideoMuted;
+NativeCallManager.prototype.resendMediaKeys = Native.cm_resendMediaKeys;
+NativeCallManager.prototype.setBandwidthMode = Native.cm_setBandwidthMode;
+NativeCallManager.prototype.requestVideo = Native.cm_requestVideo;
+NativeCallManager.prototype.setGroupMembers = Native.cm_setGroupMembers;
+NativeCallManager.prototype.setMembershipProof = Native.cm_setMembershipProof;
+NativeCallManager.prototype.peekGroupCall = Native.cm_peekGroupCall;
+NativeCallManager.prototype.getAudioInputs = Native.cm_getAudioInputs;
+NativeCallManager.prototype.setAudioInput = Native.cm_setAudioInput;
+NativeCallManager.prototype.getAudioOutputs = Native.cm_getAudioOutputs;
+NativeCallManager.prototype.setAudioOutput = Native.cm_setAudioOutput;
+NativeCallManager.prototype.poll = Native.cm_poll;
 class PeekInfo {
     constructor() {
         this.joinedMembers = [];
@@ -55,7 +106,7 @@ class RingRTCType {
         this.handleLogMessage = null;
         this.handleSendHttpRequest = null;
         this.handleSendCallMessage = null;
-        this.callManager = new Native.CallManager();
+        this.callManager = new NativeCallManager();
         this._call = null;
         this._groupCallByClientId = new Map();
         this._peekRequests = new Requests();
