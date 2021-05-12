@@ -14,9 +14,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 /* tslint:disable max-classes-per-file */
-const os = require('os');
+const os = require("os");
+const process = require("process");
 // tslint:disable-next-line no-var-requires no-require-imports
-const Native = require('../../build/' + os.platform() + '/libringrtc.node');
+const Native = require('../../build/' + os.platform() + '/libringrtc-' + process.arch + '.node');
 // tslint:disable-next-line no-unnecessary-class
 class NativeCallManager {
     constructor() {
@@ -46,6 +47,7 @@ NativeCallManager.prototype.receivedHttpResponse = Native.cm_receivedHttpRespons
 NativeCallManager.prototype.httpRequestFailed = Native.cm_httpRequestFailed;
 NativeCallManager.prototype.setOutgoingAudioEnabled = Native.cm_setOutgoingAudioEnabled;
 NativeCallManager.prototype.setOutgoingVideoEnabled = Native.cm_setOutgoingVideoEnabled;
+NativeCallManager.prototype.setOutgoingVideoIsScreenShare = Native.cm_setOutgoingVideoIsScreenShare;
 NativeCallManager.prototype.sendVideoFrame = Native.cm_sendVideoFrame;
 NativeCallManager.prototype.receiveVideoFrame = Native.cm_receiveVideoFrame;
 NativeCallManager.prototype.receiveGroupCallVideoFrame = Native.cm_receiveGroupCallVideoFrame;
@@ -57,6 +59,8 @@ NativeCallManager.prototype.leave = Native.cm_leave;
 NativeCallManager.prototype.disconnect = Native.cm_disconnect;
 NativeCallManager.prototype.setOutgoingAudioMuted = Native.cm_setOutgoingAudioMuted;
 NativeCallManager.prototype.setOutgoingVideoMuted = Native.cm_setOutgoingVideoMuted;
+NativeCallManager.prototype.setOutgoingGroupCallVideoIsScreenShare = Native.cm_setOutgoingGroupCallVideoIsScreenShare;
+NativeCallManager.prototype.setPresenting = Native.cm_setPresenting;
 NativeCallManager.prototype.resendMediaKeys = Native.cm_resendMediaKeys;
 NativeCallManager.prototype.setBandwidthMode = Native.cm_setBandwidthMode;
 NativeCallManager.prototype.requestVideo = Native.cm_requestVideo;
@@ -214,6 +218,16 @@ class RingRTCType {
         call.remoteVideoEnabled = enabled;
         if (call.handleRemoteVideoEnabled) {
             call.handleRemoteVideoEnabled();
+        }
+    }
+    onRemoteSharingScreen(remoteUserId, enabled) {
+        const call = this._call;
+        if (!call || call.remoteUserId !== remoteUserId) {
+            return;
+        }
+        call.remoteSharingScreen = enabled;
+        if (call.handleRemoteSharingScreen) {
+            call.handleRemoteSharingScreen();
         }
     }
     renderVideoFrame(width, height, buffer) {
@@ -593,6 +607,13 @@ class RingRTCType {
         }
         call.outgoingVideoEnabled = enabled;
     }
+    setOutgoingVideoIsScreenShare(callId, isScreenShare) {
+        const call = this.getCall(callId);
+        if (!call) {
+            return;
+        }
+        call.outgoingVideoIsScreenShare = isScreenShare;
+    }
     setVideoCapturer(callId, capturer) {
         const call = this.getCall(callId);
         if (!call) {
@@ -626,6 +647,7 @@ class Call {
         this._outgoingAudioEnabled = false;
         this._outgoingVideoEnabled = false;
         this._remoteVideoEnabled = false;
+        this.remoteSharingScreen = false;
         this._videoCapturer = null;
         this._videoRenderer = null;
         this._callManager = callManager;
@@ -685,7 +707,7 @@ class Call {
         if (this._videoRenderer) {
             this._videoRenderer.disable();
         }
-        // This assumes we only have one active all.
+        // This assumes we only have one active call.
         silly_deadlock_protection(() => {
             this._callManager.hangup();
         });
@@ -695,7 +717,7 @@ class Call {
     }
     set outgoingAudioEnabled(enabled) {
         this._outgoingAudioEnabled = enabled;
-        // This assumes we only have one active all.
+        // This assumes we only have one active call.
         silly_deadlock_protection(() => {
             this._callManager.setOutgoingAudioEnabled(enabled);
         });
@@ -706,6 +728,12 @@ class Call {
     set outgoingVideoEnabled(enabled) {
         this._outgoingVideoEnabled = enabled;
         this.enableOrDisableCapturer();
+    }
+    set outgoingVideoIsScreenShare(isScreenShare) {
+        // This assumes we only have one active call.
+        silly_deadlock_protection(() => {
+            this._callManager.setOutgoingVideoIsScreenShare(isScreenShare);
+        });
     }
     get remoteVideoEnabled() {
         return this._remoteVideoEnabled;
@@ -758,6 +786,17 @@ class Call {
         silly_deadlock_protection(() => {
             try {
                 this._callManager.setOutgoingVideoEnabled(enabled);
+            }
+            catch (_a) {
+                // We may not have an active connection any more.
+                // In which case it doesn't matter
+            }
+        });
+    }
+    setOutgoingVideoIsScreenShare(isScreenShare) {
+        silly_deadlock_protection(() => {
+            try {
+                this._callManager.setOutgoingVideoIsScreenShare(isScreenShare);
             }
             catch (_a) {
                 // We may not have an active connection any more.
@@ -853,6 +892,8 @@ class LocalDeviceState {
         // By default audio and video are muted.
         this.audioMuted = true;
         this.videoMuted = true;
+        this.presenting = false;
+        this.sharingScreen = false;
     }
 }
 exports.LocalDeviceState = LocalDeviceState;
@@ -933,6 +974,18 @@ class GroupCall {
     setOutgoingVideoMuted(muted) {
         this._localDeviceState.videoMuted = muted;
         this._callManager.setOutgoingVideoMuted(this._clientId, muted);
+        this._observer.onLocalDeviceStateChanged(this);
+    }
+    // Called by UI
+    setPresenting(presenting) {
+        this._localDeviceState.presenting = presenting;
+        this._callManager.setPresenting(this._clientId, presenting);
+        this._observer.onLocalDeviceStateChanged(this);
+    }
+    // Called by UI
+    setOutgoingVideoIsScreenShare(isScreenShare) {
+        this._localDeviceState.sharingScreen = isScreenShare;
+        this._callManager.setOutgoingGroupCallVideoIsScreenShare(this._clientId, isScreenShare);
         this._observer.onLocalDeviceStateChanged(this);
     }
     // Called by UI

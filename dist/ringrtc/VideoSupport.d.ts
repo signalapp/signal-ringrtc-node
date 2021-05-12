@@ -7,12 +7,17 @@ export interface VideoFrameSource {
 interface VideoFrameSender {
     sendVideoFrame(width: number, height: number, rgbaBuffer: ArrayBuffer): void;
 }
+export declare class GumVideoCaptureOptions {
+    maxWidth: number;
+    maxHeight: number;
+    maxFramerate: number;
+    preferredDeviceId?: string;
+    screenShareSourceId?: string;
+}
 export declare class GumVideoCapturer {
-    private readonly maxWidth;
-    private readonly maxHeight;
-    private readonly maxFramerate;
+    private defaultCaptureOptions;
     private localPreview?;
-    private capturing;
+    private captureOptions?;
     private getUserMediaPromise?;
     private sender?;
     private mediaStream?;
@@ -22,10 +27,11 @@ export declare class GumVideoCapturer {
     private preferredDeviceId?;
     private capturingStartTime;
     fakeVideoName: string | undefined;
-    constructor(maxWidth: number, maxHeight: number, maxFramerate: number);
+    constructor(defaultCaptureOptions: GumVideoCaptureOptions);
+    capturing(): boolean;
     setLocalPreview(localPreview: Ref<HTMLVideoElement> | undefined): void;
     enableCapture(): void;
-    enableCaptureAndSend(sender: VideoFrameSender): void;
+    enableCaptureAndSend(sender: VideoFrameSender, options?: GumVideoCaptureOptions): void;
     disable(): void;
     setPreferredDevice(deviceId: string): Promise<void>;
     enumerateDevices(): Promise<MediaDeviceInfo[]>;

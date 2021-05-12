@@ -1,3 +1,4 @@
+import { GumVideoCaptureOptions } from "./VideoSupport";
 declare type GroupCallUserId = ArrayBuffer;
 export declare class PeekInfo {
     joinedMembers: Array<GroupCallUserId>;
@@ -29,6 +30,7 @@ export declare class RingRTCType {
     onCallState(remoteUserId: UserId, state: CallState): void;
     onCallEnded(remoteUserId: UserId, reason: CallEndedReason): void;
     onRemoteVideoEnabled(remoteUserId: UserId, enabled: boolean): void;
+    onRemoteSharingScreen(remoteUserId: UserId, enabled: boolean): void;
     renderVideoFrame(width: number, height: number, buffer: ArrayBuffer): void;
     onSendOffer(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean, offerType: OfferType, opaque: ArrayBuffer): void;
     onSendAnswer(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean, opaque: ArrayBuffer): void;
@@ -63,6 +65,7 @@ export declare class RingRTCType {
     hangup(callId: CallId): void;
     setOutgoingAudio(callId: CallId, enabled: boolean): void;
     setOutgoingVideo(callId: CallId, enabled: boolean): void;
+    setOutgoingVideoIsScreenShare(callId: CallId, isScreenShare: boolean): void;
     setVideoCapturer(callId: CallId, capturer: VideoCapturer | null): void;
     setVideoRenderer(callId: CallId, renderer: VideoRenderer | null): void;
     getAudioInputs(): AudioDevice[];
@@ -88,7 +91,7 @@ export interface AudioDevice {
 }
 export interface VideoCapturer {
     enableCapture(): void;
-    enableCaptureAndSend(call: Call): void;
+    enableCaptureAndSend(call: Call, captureOptions?: GumVideoCaptureOptions): void;
     disable(): void;
 }
 export interface VideoRenderer {
@@ -106,11 +109,13 @@ export declare class Call {
     private _outgoingAudioEnabled;
     private _outgoingVideoEnabled;
     private _remoteVideoEnabled;
+    remoteSharingScreen: boolean;
     private _videoCapturer;
     private _videoRenderer;
     endedReason?: CallEndedReason;
     handleStateChanged?: () => void;
     handleRemoteVideoEnabled?: () => void;
+    handleRemoteSharingScreen?: () => void;
     renderVideoFrame?: (width: number, height: number, buffer: ArrayBuffer) => void;
     constructor(callManager: CallManager, remoteUserId: UserId, callId: CallId, isIncoming: boolean, isVideoCall: boolean, settings: CallSettings | null, state: CallState);
     get remoteUserId(): UserId;
@@ -128,12 +133,14 @@ export declare class Call {
     set outgoingAudioEnabled(enabled: boolean);
     get outgoingVideoEnabled(): boolean;
     set outgoingVideoEnabled(enabled: boolean);
+    set outgoingVideoIsScreenShare(isScreenShare: boolean);
     get remoteVideoEnabled(): boolean;
     set remoteVideoEnabled(enabled: boolean);
     sendVideoFrame(width: number, height: number, rgbaBuffer: ArrayBuffer): void;
     receiveVideoFrame(buffer: ArrayBuffer): [number, number] | undefined;
     private enableOrDisableCapturer;
     private setOutgoingVideoEnabled;
+    private setOutgoingVideoIsScreenShare;
     updateBandwidthMode(bandwidthMode: BandwidthMode): void;
     private enableOrDisableRenderer;
 }
@@ -177,6 +184,8 @@ export declare class LocalDeviceState {
     joinState: JoinState;
     audioMuted: boolean;
     videoMuted: boolean;
+    presenting: boolean;
+    sharingScreen: boolean;
     constructor();
 }
 export declare class RemoteDeviceState {
@@ -185,6 +194,8 @@ export declare class RemoteDeviceState {
     mediaKeysReceived: boolean;
     audioMuted: boolean | undefined;
     videoMuted: boolean | undefined;
+    presenting: boolean | undefined;
+    sharingScreen: boolean | undefined;
     videoAspectRatio: number | undefined;
     addedTime: string | undefined;
     speakerTime: string | undefined;
@@ -228,6 +239,8 @@ export declare class GroupCall {
     getPeekInfo(): PeekInfo | undefined;
     setOutgoingAudioMuted(muted: boolean): void;
     setOutgoingVideoMuted(muted: boolean): void;
+    setPresenting(presenting: boolean): void;
+    setOutgoingVideoIsScreenShare(isScreenShare: boolean): void;
     resendMediaKeys(): void;
     setBandwidthMode(bandwidthMode: BandwidthMode): void;
     requestVideo(resolutions: Array<VideoRequest>): void;
@@ -323,6 +336,7 @@ export interface CallManager {
     signalingMessageSendFailed(callId: CallId): void;
     setOutgoingAudioEnabled(enabled: boolean): void;
     setOutgoingVideoEnabled(enabled: boolean): void;
+    setOutgoingVideoIsScreenShare(enabled: boolean): void;
     updateBandwidthMode(bandwidthMode: BandwidthMode): void;
     sendVideoFrame(width: number, height: number, buffer: ArrayBuffer): void;
     receiveVideoFrame(buffer: ArrayBuffer): [number, number] | undefined;
@@ -342,6 +356,8 @@ export interface CallManager {
     disconnect(clientId: GroupCallClientId): void;
     setOutgoingAudioMuted(clientId: GroupCallClientId, muted: boolean): void;
     setOutgoingVideoMuted(clientId: GroupCallClientId, muted: boolean): void;
+    setPresenting(clientId: GroupCallClientId, presenting: boolean): void;
+    setOutgoingGroupCallVideoIsScreenShare(clientId: GroupCallClientId, isScreenShare: boolean): void;
     resendMediaKeys(clientId: GroupCallClientId): void;
     setBandwidthMode(clientId: GroupCallClientId, bandwidthMode: BandwidthMode): void;
     requestVideo(clientId: GroupCallClientId, resolutions: Array<VideoRequest>): void;
@@ -361,6 +377,7 @@ export interface CallManagerCallbacks {
     onCallState(remoteUserId: UserId, state: CallState): void;
     onCallEnded(remoteUserId: UserId, endedReason: CallEndedReason): void;
     onRemoteVideoEnabled(remoteUserId: UserId, enabled: boolean): void;
+    onRemoteSharingScreen(remoteUserId: UserId, enabled: boolean): void;
     onSendOffer(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean, mediaType: number, opaque: ArrayBuffer): void;
     onSendAnswer(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean, opaque: ArrayBuffer): void;
     onSendIceCandidates(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean, candidates: Array<ArrayBuffer>): void;
