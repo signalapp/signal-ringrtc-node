@@ -108,6 +108,7 @@ export declare class Call {
     private _state;
     private _outgoingAudioEnabled;
     private _outgoingVideoEnabled;
+    private _outgoingVideoIsScreenShare;
     private _remoteVideoEnabled;
     remoteSharingScreen: boolean;
     private _videoCapturer;
@@ -140,7 +141,6 @@ export declare class Call {
     receiveVideoFrame(buffer: ArrayBuffer): [number, number] | undefined;
     private enableOrDisableCapturer;
     private setOutgoingVideoEnabled;
-    private setOutgoingVideoIsScreenShare;
     updateBandwidthMode(bandwidthMode: BandwidthMode): void;
     private enableOrDisableRenderer;
 }
