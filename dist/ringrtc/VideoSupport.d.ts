@@ -44,6 +44,10 @@ export declare class GumVideoCapturer {
     private captureAndSendOneVideoFrame;
     private drawFakeVideo;
 }
+export declare const MAX_VIDEO_CAPTURE_WIDTH: number;
+export declare const MAX_VIDEO_CAPTURE_HEIGHT: number;
+export declare const MAX_VIDEO_CAPTURE_AREA: number;
+export declare const MAX_VIDEO_CAPTURE_BUFFER_SIZE: number;
 export declare class CanvasVideoRenderer {
     private canvas?;
     private buffer;
