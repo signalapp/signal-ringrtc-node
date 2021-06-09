@@ -18,7 +18,6 @@ export declare class GumVideoCapturer {
     private defaultCaptureOptions;
     private localPreview?;
     private captureOptions?;
-    private getUserMediaPromise?;
     private sender?;
     private mediaStream?;
     private canvas?;

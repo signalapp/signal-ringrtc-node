@@ -65,43 +65,36 @@ class GumVideoCapturer {
             return cameras;
         });
     }
-    // This helps prevent concurrent calls to `getUserMedia`.
     getUserMedia(options) {
         var _a;
-        if (!this.getUserMediaPromise) {
-            let contraints = {
-                audio: false,
-                video: {
-                    deviceId: (_a = options.preferredDeviceId, (_a !== null && _a !== void 0 ? _a : this.preferredDeviceId)),
-                    width: {
-                        max: options.maxWidth,
-                    },
-                    height: {
-                        max: options.maxHeight,
-                    },
-                    frameRate: {
-                        max: options.maxFramerate,
-                    },
+        // TODO: Figure out a better way to make typescript accept "mandatory".
+        let constraints = {
+            audio: false,
+            video: {
+                deviceId: (_a = options.preferredDeviceId, (_a !== null && _a !== void 0 ? _a : this.preferredDeviceId)),
+                width: {
+                    max: options.maxWidth,
                 },
+                height: {
+                    max: options.maxHeight,
+                },
+                frameRate: {
+                    max: options.maxFramerate,
+                },
+            },
+        };
+        if (options.screenShareSourceId != undefined) {
+            constraints.video = {
+                mandatory: {
+                    chromeMediaSource: 'desktop',
+                    chromeMediaSourceId: options.screenShareSourceId,
+                    maxWidth: options.maxWidth,
+                    maxHeight: options.maxHeight,
+                    maxFrameRate: options.maxFramerate,
+                }
             };
-            if (options.screenShareSourceId != undefined) {
-                contraints.video = {
-                    mandatory: {
-                        chromeMediaSource: 'desktop',
-                        chromeMediaSourceId: options.screenShareSourceId,
-                        maxWidth: options.maxWidth,
-                        maxHeight: options.maxHeight,
-                        maxFrameRate: options.maxFramerate,
-                    }
-                };
-            }
-            // TODO: Figure out a better way to make typescript accept "mandatory".
-            this.getUserMediaPromise = window.navigator.mediaDevices.getUserMedia(contraints).then(mediaStream => {
-                delete this.getUserMediaPromise;
-                return mediaStream;
-            });
         }
-        return this.getUserMediaPromise;
+        return window.navigator.mediaDevices.getUserMedia(constraints);
     }
     startCapturing(options) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -111,9 +104,14 @@ class GumVideoCapturer {
             this.captureOptions = options;
             this.capturingStartTime = Date.now();
             try {
+                // If we start/stop/start, we may have concurrent calls to getUserMedia,
+                // which is what we want if we're switching from camera to screenshare.
+                // But we need to make sure we deal with the fact that things might be
+                // different after the await here.
                 const mediaStream = yield this.getUserMedia(options);
-                // We could have been disabled between when we requested the stream
-                // and when we got it.
+                // It's possible video was disabled, switched to screenshare, or
+                // switched to a different camera while awaiting a response, in
+                // which case we need to disable the camera we just accessed.
                 if (this.captureOptions != options) {
                     for (const track of mediaStream.getVideoTracks()) {
                         // Make the light turn off faster
@@ -126,8 +124,14 @@ class GumVideoCapturer {
                 }
                 this.mediaStream = mediaStream;
             }
-            catch (_a) {
-                // We couldn't open the camera.  Oh well.
+            catch (e) {
+                // It's possible video was disabled, switched to screenshare, or
+                // switched to a different camera while awaiting a response, in
+                // which case we should reset the captureOptions if we set them.
+                if (this.captureOptions == options) {
+                    // We couldn't open the camera.  Oh well.
+                    this.captureOptions = undefined;
+                }
             }
         });
     }
