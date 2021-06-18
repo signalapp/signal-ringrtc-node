@@ -15,12 +15,12 @@ export interface VideoFrameSource {
   // Fills in the given buffer and returns the width x height
   // or returns undefined if nothing was filled in because no
   // video frame was available.
-  receiveVideoFrame(buffer: ArrayBuffer): [number, number] | undefined;
+  receiveVideoFrame(buffer: Buffer): [number, number] | undefined;
 }
 
 // The way a GumVideoCapturer sends frames
 interface VideoFrameSender {
-  sendVideoFrame(width: number, height: number, rgbaBuffer: ArrayBuffer): void;
+  sendVideoFrame(width: number, height: number, rgbaBuffer: Buffer): void;
 }
 
 export class GumVideoCaptureOptions {
@@ -237,7 +237,7 @@ export class GumVideoCapturer {
       let duration = Date.now() - this.capturingStartTime;
       this.drawFakeVideo(this.canvasContext, width, height, this.fakeVideoName, duration);
       const image = this.canvasContext.getImageData(0, 0, width, height);
-      this.sender.sendVideoFrame(image.width, image.height, image.data.buffer);
+      this.sender.sendVideoFrame(image.width, image.height, Buffer.from(image.data.buffer));
       return;
     }
 
@@ -259,7 +259,7 @@ export class GumVideoCapturer {
         height
       );
       const image = this.canvasContext.getImageData(0, 0, width, height);
-      this.sender.sendVideoFrame(image.width, image.height, image.data.buffer);
+      this.sender.sendVideoFrame(image.width, image.height, Buffer.from(image.data.buffer));
     }
   }
 
@@ -329,12 +329,12 @@ export const MAX_VIDEO_CAPTURE_BUFFER_SIZE = MAX_VIDEO_CAPTURE_AREA * 4;
 
 export class CanvasVideoRenderer {
   private canvas?: Ref<HTMLCanvasElement>;
-  private buffer: ArrayBuffer;
+  private buffer: Buffer;
   private source?: VideoFrameSource;
   private rafId?: any;
 
   constructor() {
-    this.buffer = new ArrayBuffer(MAX_VIDEO_CAPTURE_BUFFER_SIZE);
+    this.buffer = Buffer.alloc(MAX_VIDEO_CAPTURE_BUFFER_SIZE);
   }
 
   setCanvas(canvas: Ref<HTMLCanvasElement> | undefined) {
@@ -435,8 +435,10 @@ export class CanvasVideoRenderer {
       context.fillRect(0, 0, canvas.width, canvas.height);
     }
 
+    // Share the same buffer as this.buffer.
+    const clampedArrayBuffer = new Uint8ClampedArray(this.buffer.buffer, 0, width * height * 4);
     context.putImageData(
-      new ImageData(new Uint8ClampedArray(this.buffer, 0, width * height * 4), width, height),
+      new ImageData(clampedArrayBuffer, width, height),
       dx,
       dy
     );

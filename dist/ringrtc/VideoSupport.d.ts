@@ -1,11 +1,12 @@
+/// <reference types="node" />
 interface Ref<T> {
     readonly current: T | null;
 }
 export interface VideoFrameSource {
-    receiveVideoFrame(buffer: ArrayBuffer): [number, number] | undefined;
+    receiveVideoFrame(buffer: Buffer): [number, number] | undefined;
 }
 interface VideoFrameSender {
-    sendVideoFrame(width: number, height: number, rgbaBuffer: ArrayBuffer): void;
+    sendVideoFrame(width: number, height: number, rgbaBuffer: Buffer): void;
 }
 export declare class GumVideoCaptureOptions {
     maxWidth: number;

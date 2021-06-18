@@ -201,7 +201,7 @@ class GumVideoCapturer {
             let duration = Date.now() - this.capturingStartTime;
             this.drawFakeVideo(this.canvasContext, width, height, this.fakeVideoName, duration);
             const image = this.canvasContext.getImageData(0, 0, width, height);
-            this.sender.sendVideoFrame(image.width, image.height, image.data.buffer);
+            this.sender.sendVideoFrame(image.width, image.height, Buffer.from(image.data.buffer));
             return;
         }
         if (this.localPreview && this.localPreview.current) {
@@ -215,7 +215,7 @@ class GumVideoCapturer {
             }
             this.canvasContext.drawImage(this.localPreview.current, 0, 0, width, height);
             const image = this.canvasContext.getImageData(0, 0, width, height);
-            this.sender.sendVideoFrame(image.width, image.height, image.data.buffer);
+            this.sender.sendVideoFrame(image.width, image.height, Buffer.from(image.data.buffer));
         }
     }
     drawFakeVideo(context, width, height, name, time) {
@@ -275,7 +275,7 @@ exports.MAX_VIDEO_CAPTURE_AREA = exports.MAX_VIDEO_CAPTURE_WIDTH * exports.MAX_V
 exports.MAX_VIDEO_CAPTURE_BUFFER_SIZE = exports.MAX_VIDEO_CAPTURE_AREA * 4;
 class CanvasVideoRenderer {
     constructor() {
-        this.buffer = new ArrayBuffer(exports.MAX_VIDEO_CAPTURE_BUFFER_SIZE);
+        this.buffer = Buffer.alloc(exports.MAX_VIDEO_CAPTURE_BUFFER_SIZE);
     }
     setCanvas(canvas) {
         this.canvas = canvas;
@@ -366,7 +366,9 @@ class CanvasVideoRenderer {
             context.fillStyle = 'black';
             context.fillRect(0, 0, canvas.width, canvas.height);
         }
-        context.putImageData(new ImageData(new Uint8ClampedArray(this.buffer, 0, width * height * 4), width, height), dx, dy);
+        // Share the same buffer as this.buffer.
+        const clampedArrayBuffer = new Uint8ClampedArray(this.buffer.buffer, 0, width * height * 4);
+        context.putImageData(new ImageData(clampedArrayBuffer, width, height), dx, dy);
     }
 }
 exports.CanvasVideoRenderer = CanvasVideoRenderer;

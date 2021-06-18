@@ -1,5 +1,6 @@
+/// <reference types="node" />
 import { GumVideoCaptureOptions } from "./VideoSupport";
-declare type GroupCallUserId = ArrayBuffer;
+declare type GroupCallUserId = Buffer;
 export declare class PeekInfo {
     joinedMembers: Array<GroupCallUserId>;
     creator?: GroupCallUserId;
@@ -19,8 +20,8 @@ export declare class RingRTCType {
     handleLogMessage: ((level: CallLogLevel, fileName: string, line: number, message: string) => void) | null;
     handleSendHttpRequest: ((requestId: number, url: string, method: HttpMethod, headers: {
         [name: string]: string;
-    }, body: ArrayBuffer | undefined) => void) | null;
-    handleSendCallMessage: ((recipientUuid: ArrayBuffer, message: ArrayBuffer) => void) | null;
+    }, body: Buffer | undefined) => void) | null;
+    handleSendCallMessage: ((recipientUuid: Buffer, message: Buffer) => void) | null;
     constructor();
     private pollEvery;
     startOutgoingCall(remoteUserId: UserId, isVideoCall: boolean, localDeviceId: DeviceId, settings: CallSettings): Call;
@@ -31,18 +32,18 @@ export declare class RingRTCType {
     onCallEnded(remoteUserId: UserId, reason: CallEndedReason): void;
     onRemoteVideoEnabled(remoteUserId: UserId, enabled: boolean): void;
     onRemoteSharingScreen(remoteUserId: UserId, enabled: boolean): void;
-    renderVideoFrame(width: number, height: number, buffer: ArrayBuffer): void;
-    onSendOffer(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean, offerType: OfferType, opaque: ArrayBuffer): void;
-    onSendAnswer(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean, opaque: ArrayBuffer): void;
-    onSendIceCandidates(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean, candidates: Array<ArrayBuffer>): void;
+    renderVideoFrame(width: number, height: number, buffer: Buffer): void;
+    onSendOffer(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean, offerType: OfferType, opaque: Buffer): void;
+    onSendAnswer(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean, opaque: Buffer): void;
+    onSendIceCandidates(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean, candidates: Array<Buffer>): void;
     onSendLegacyHangup(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean, hangupType: HangupType, deviceId: DeviceId | null): void;
     onSendHangup(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean, hangupType: HangupType, deviceId: DeviceId | null): void;
     onSendBusy(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean): void;
     private sendSignaling;
-    receivedHttpResponse(requestId: number, status: number, body: ArrayBuffer): void;
+    receivedHttpResponse(requestId: number, status: number, body: Buffer): void;
     httpRequestFailed(requestId: number, debugInfo: string | undefined): void;
-    getGroupCall(groupId: ArrayBuffer, sfuUrl: string, observer: GroupCallObserver): GroupCall | undefined;
-    peekGroupCall(sfu_url: string, membership_proof: ArrayBuffer, group_members: Array<GroupMemberInfo>): Promise<PeekInfo>;
+    getGroupCall(groupId: Buffer, sfuUrl: string, observer: GroupCallObserver): GroupCall | undefined;
+    peekGroupCall(sfu_url: string, membership_proof: Buffer, group_members: Array<GroupMemberInfo>): Promise<PeekInfo>;
     requestMembershipProof(clientId: GroupCallClientId): void;
     requestGroupMembers(clientId: GroupCallClientId): void;
     handleConnectionStateChanged(clientId: GroupCallClientId, connectionState: ConnectionState): void;
@@ -52,11 +53,11 @@ export declare class RingRTCType {
     handlePeekResponse(request_id: number, info: PeekInfo): void;
     handleEnded(clientId: GroupCallClientId, reason: GroupCallEndReason): void;
     onLogMessage(level: number, fileName: string, line: number, message: string): void;
-    handleCallingMessage(remoteUserId: UserId, remoteUuid: ArrayBuffer | null, remoteDeviceId: DeviceId, localDeviceId: DeviceId, messageAgeSec: number, message: CallingMessage, senderIdentityKey: ArrayBuffer, receiverIdentityKey: ArrayBuffer): void;
+    handleCallingMessage(remoteUserId: UserId, remoteUuid: Buffer | null, remoteDeviceId: DeviceId, localDeviceId: DeviceId, messageAgeSec: number, message: CallingMessage, senderIdentityKey: Buffer, receiverIdentityKey: Buffer): void;
     sendHttpRequest(requestId: number, url: string, method: HttpMethod, headers: {
         [name: string]: string;
-    }, body: ArrayBuffer | undefined): void;
-    sendCallMessage(recipientUuid: ArrayBuffer, message: ArrayBuffer): void;
+    }, body: Buffer | undefined): void;
+    sendCallMessage(recipientUuid: Buffer, message: Buffer): void;
     get call(): Call | null;
     getCall(callId: CallId): Call | null;
     accept(callId: CallId, asVideoCall: boolean): void;
@@ -117,7 +118,7 @@ export declare class Call {
     handleStateChanged?: () => void;
     handleRemoteVideoEnabled?: () => void;
     handleRemoteSharingScreen?: () => void;
-    renderVideoFrame?: (width: number, height: number, buffer: ArrayBuffer) => void;
+    renderVideoFrame?: (width: number, height: number, buffer: Buffer) => void;
     constructor(callManager: CallManager, remoteUserId: UserId, callId: CallId, isIncoming: boolean, isVideoCall: boolean, settings: CallSettings | null, state: CallState);
     get remoteUserId(): UserId;
     get isIncoming(): boolean;
@@ -137,8 +138,8 @@ export declare class Call {
     set outgoingVideoIsScreenShare(isScreenShare: boolean);
     get remoteVideoEnabled(): boolean;
     set remoteVideoEnabled(enabled: boolean);
-    sendVideoFrame(width: number, height: number, rgbaBuffer: ArrayBuffer): void;
-    receiveVideoFrame(buffer: ArrayBuffer): [number, number] | undefined;
+    sendVideoFrame(width: number, height: number, rgbaBuffer: Buffer): void;
+    receiveVideoFrame(buffer: Buffer): [number, number] | undefined;
     private enableOrDisableCapturer;
     private setOutgoingVideoEnabled;
     updateBandwidthMode(bandwidthMode: BandwidthMode): void;
@@ -190,7 +191,7 @@ export declare class LocalDeviceState {
 }
 export declare class RemoteDeviceState {
     demuxId: number;
-    userId: ArrayBuffer;
+    userId: Buffer;
     mediaKeysReceived: boolean;
     audioMuted: boolean | undefined;
     videoMuted: boolean | undefined;
@@ -199,12 +200,12 @@ export declare class RemoteDeviceState {
     videoAspectRatio: number | undefined;
     addedTime: string | undefined;
     speakerTime: string | undefined;
-    constructor(demuxId: number, userId: ArrayBuffer, mediaKeysReceived: boolean);
+    constructor(demuxId: number, userId: Buffer, mediaKeysReceived: boolean);
 }
 export declare class GroupMemberInfo {
-    userId: ArrayBuffer;
-    userIdCipherText: ArrayBuffer;
-    constructor(userId: ArrayBuffer, userIdCipherText: ArrayBuffer);
+    userId: Buffer;
+    userIdCipherText: Buffer;
+    constructor(userId: Buffer, userIdCipherText: Buffer);
 }
 export declare class VideoRequest {
     demuxId: number;
@@ -229,7 +230,7 @@ export declare class GroupCall {
     private _localDeviceState;
     private _remoteDeviceStates;
     private _peekInfo;
-    constructor(callManager: CallManager, groupId: ArrayBuffer, sfuUrl: string, observer: GroupCallObserver);
+    constructor(callManager: CallManager, groupId: Buffer, sfuUrl: string, observer: GroupCallObserver);
     connect(): void;
     join(): void;
     leave(): void;
@@ -245,7 +246,7 @@ export declare class GroupCall {
     setBandwidthMode(bandwidthMode: BandwidthMode): void;
     requestVideo(resolutions: Array<VideoRequest>): void;
     setGroupMembers(members: Array<GroupMemberInfo>): void;
-    setMembershipProof(proof: ArrayBuffer): void;
+    setMembershipProof(proof: Buffer): void;
     requestMembershipProof(): void;
     requestGroupMembers(): void;
     handleConnectionStateChanged(connectionState: ConnectionState): void;
@@ -253,7 +254,7 @@ export declare class GroupCall {
     handleRemoteDevicesChanged(remoteDeviceStates: Array<RemoteDeviceState>): void;
     handlePeekChanged(info: PeekInfo): void;
     handleEnded(reason: GroupCallEndReason): void;
-    sendVideoFrame(width: number, height: number, rgbaBuffer: ArrayBuffer): void;
+    sendVideoFrame(width: number, height: number, rgbaBuffer: Buffer): void;
     getVideoSource(remoteDemuxId: number): GroupCallVideoFrameSource;
     setRemoteAspectRatio(remoteDemuxId: number, aspectRatio: number): void;
 }
@@ -262,9 +263,9 @@ declare class GroupCallVideoFrameSource {
     private readonly _groupCall;
     private readonly _remoteDemuxId;
     constructor(callManager: CallManager, groupCall: GroupCall, remoteDemuxId: number);
-    receiveVideoFrame(buffer: ArrayBuffer): [number, number] | undefined;
+    receiveVideoFrame(buffer: Buffer): [number, number] | undefined;
 }
-declare type ProtobufArrayBuffer = ArrayBuffer | {
+declare type ProtobufBuffer = Buffer | {
     toArrayBuffer: () => ArrayBuffer;
 };
 export declare type UserId = string;
@@ -284,7 +285,7 @@ export declare class CallingMessage {
 export declare class OfferMessage {
     callId?: CallId;
     type?: OfferType;
-    opaque?: ProtobufArrayBuffer;
+    opaque?: ProtobufBuffer;
     sdp?: string;
 }
 export declare enum OfferType {
@@ -293,14 +294,14 @@ export declare enum OfferType {
 }
 export declare class AnswerMessage {
     callId?: CallId;
-    opaque?: ProtobufArrayBuffer;
+    opaque?: ProtobufBuffer;
     sdp?: string;
 }
 export declare class IceCandidateMessage {
     callId?: CallId;
     mid?: string;
     line?: number;
-    opaque?: ProtobufArrayBuffer;
+    opaque?: ProtobufBuffer;
     sdp?: string;
 }
 export declare class BusyMessage {
@@ -312,7 +313,7 @@ export declare class HangupMessage {
     deviceId?: DeviceId;
 }
 export declare class OpaqueMessage {
-    data?: ProtobufArrayBuffer;
+    data?: ProtobufBuffer;
 }
 export declare enum HangupType {
     Normal = 0,
@@ -338,17 +339,17 @@ export interface CallManager {
     setOutgoingVideoEnabled(enabled: boolean): void;
     setOutgoingVideoIsScreenShare(enabled: boolean): void;
     updateBandwidthMode(bandwidthMode: BandwidthMode): void;
-    sendVideoFrame(width: number, height: number, buffer: ArrayBuffer): void;
-    receiveVideoFrame(buffer: ArrayBuffer): [number, number] | undefined;
-    receivedOffer(remoteUserId: UserId, remoteDeviceId: DeviceId, messageAgeSec: number, callId: CallId, offerType: OfferType, localDeviceId: DeviceId, remoteSupportsMultiRing: boolean, opaque: ArrayBuffer, senderIdentityKey: ArrayBuffer, receiverIdentityKey: ArrayBuffer): void;
-    receivedAnswer(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, remoteSupportsMultiRing: boolean, opaque: ArrayBuffer, senderIdentityKey: ArrayBuffer, receiverIdentityKey: ArrayBuffer): void;
-    receivedIceCandidates(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, candidates: Array<ArrayBuffer>): void;
+    sendVideoFrame(width: number, height: number, buffer: Buffer): void;
+    receiveVideoFrame(buffer: Buffer): [number, number] | undefined;
+    receivedOffer(remoteUserId: UserId, remoteDeviceId: DeviceId, messageAgeSec: number, callId: CallId, offerType: OfferType, localDeviceId: DeviceId, remoteSupportsMultiRing: boolean, opaque: Buffer, senderIdentityKey: Buffer, receiverIdentityKey: Buffer): void;
+    receivedAnswer(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, remoteSupportsMultiRing: boolean, opaque: Buffer, senderIdentityKey: Buffer, receiverIdentityKey: Buffer): void;
+    receivedIceCandidates(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, candidates: Array<Buffer>): void;
     receivedHangup(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, hangupType: HangupType, hangupDeviceId: DeviceId | null): void;
     receivedBusy(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId): void;
-    receivedCallMessage(remoteUserId: ArrayBuffer, remoteDeviceId: DeviceId, localDeviceId: DeviceId, data: ArrayBuffer, messageAgeSec: number): void;
-    receivedHttpResponse(requestId: number, status: number, body: ArrayBuffer): void;
+    receivedCallMessage(remoteUserId: Buffer, remoteDeviceId: DeviceId, localDeviceId: DeviceId, data: Buffer, messageAgeSec: number): void;
+    receivedHttpResponse(requestId: number, status: number, body: Buffer): void;
     httpRequestFailed(requestId: number, debugInfo: string | undefined): void;
-    createGroupCallClient(groupId: ArrayBuffer, sfuUrl: string): GroupCallClientId;
+    createGroupCallClient(groupId: Buffer, sfuUrl: string): GroupCallClientId;
     deleteGroupCallClient(clientId: GroupCallClientId): void;
     connect(clientId: GroupCallClientId): void;
     join(clientId: GroupCallClientId): void;
@@ -362,9 +363,9 @@ export interface CallManager {
     setBandwidthMode(clientId: GroupCallClientId, bandwidthMode: BandwidthMode): void;
     requestVideo(clientId: GroupCallClientId, resolutions: Array<VideoRequest>): void;
     setGroupMembers(clientId: GroupCallClientId, members: Array<GroupMemberInfo>): void;
-    setMembershipProof(clientId: GroupCallClientId, proof: ArrayBuffer): void;
-    receiveGroupCallVideoFrame(clientId: GroupCallClientId, remoteDemuxId: number, buffer: ArrayBuffer): [number, number] | undefined;
-    peekGroupCall(requestId: number, sfu_url: string, membership_proof: ArrayBuffer, group_members: Array<GroupMemberInfo>): Promise<PeekInfo>;
+    setMembershipProof(clientId: GroupCallClientId, proof: Buffer): void;
+    receiveGroupCallVideoFrame(clientId: GroupCallClientId, remoteDemuxId: number, buffer: Buffer): [number, number] | undefined;
+    peekGroupCall(requestId: number, sfu_url: string, membership_proof: Buffer, group_members: Array<GroupMemberInfo>): Promise<PeekInfo>;
     getAudioInputs(): AudioDevice[];
     setAudioInput(index: number): void;
     getAudioOutputs(): AudioDevice[];
@@ -378,16 +379,16 @@ export interface CallManagerCallbacks {
     onCallEnded(remoteUserId: UserId, endedReason: CallEndedReason): void;
     onRemoteVideoEnabled(remoteUserId: UserId, enabled: boolean): void;
     onRemoteSharingScreen(remoteUserId: UserId, enabled: boolean): void;
-    onSendOffer(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean, mediaType: number, opaque: ArrayBuffer): void;
-    onSendAnswer(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean, opaque: ArrayBuffer): void;
-    onSendIceCandidates(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean, candidates: Array<ArrayBuffer>): void;
+    onSendOffer(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean, mediaType: number, opaque: Buffer): void;
+    onSendAnswer(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean, opaque: Buffer): void;
+    onSendIceCandidates(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean, candidates: Array<Buffer>): void;
     onSendLegacyHangup(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean, HangupType: HangupType, hangupDeviceId: DeviceId | null): void;
     onSendHangup(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean, HangupType: HangupType, hangupDeviceId: DeviceId | null): void;
     onSendBusy(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean): void;
-    sendCallMessage(recipientUuid: ArrayBuffer, message: ArrayBuffer): void;
+    sendCallMessage(recipientUuid: Buffer, message: Buffer): void;
     sendHttpRequest(requestId: number, url: string, method: HttpMethod, headers: {
         [name: string]: string;
-    }, body: ArrayBuffer | undefined): void;
+    }, body: Buffer | undefined): void;
     requestMembershipProof(clientId: GroupCallClientId): void;
     requestGroupMembers(clientId: GroupCallClientId): void;
     handleConnectionStateChanged(clientId: GroupCallClientId, connectionState: ConnectionState): void;

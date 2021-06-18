@@ -462,7 +462,7 @@ class RingRTCType {
         }
         if (message.offer && message.offer.callId) {
             const callId = message.offer.callId;
-            const opaque = to_array_buffer(message.offer.opaque);
+            const opaque = to_buffer(message.offer.opaque);
             // opaque is required. sdp is obsolete, but it might still come with opaque.
             if (!opaque) {
                 // TODO: Remove once the proto is updated to only support opaque and require it.
@@ -474,7 +474,7 @@ class RingRTCType {
         }
         if (message.answer && message.answer.callId) {
             const callId = message.answer.callId;
-            const opaque = to_array_buffer(message.answer.opaque);
+            const opaque = to_buffer(message.answer.opaque);
             // opaque is required. sdp is obsolete, but it might still come with opaque.
             if (!opaque) {
                 // TODO: Remove once the proto is updated to only support opaque and require it.
@@ -489,7 +489,7 @@ class RingRTCType {
             // We have to copy them to do the .toArrayBuffer() thing.
             const candidates = [];
             for (const candidate of message.iceCandidates) {
-                const copy = to_array_buffer(candidate.opaque);
+                const copy = to_buffer(candidate.opaque);
                 if (copy) {
                     candidates.push(copy);
                 }
@@ -526,7 +526,7 @@ class RingRTCType {
                 this.onLogMessage(CallLogLevel.Error, 'Service.ts', 0, 'handleCallingMessage(): opaque message received without UUID!');
                 return;
             }
-            const data = to_array_buffer(message.opaque.data);
+            const data = to_buffer(message.opaque.data);
             if (data == undefined) {
                 this.onLogMessage(CallLogLevel.Error, 'Service.ts', 0, 'handleCallingMessage(): opaque message received without data!');
                 return;
@@ -1079,14 +1079,14 @@ class GroupCallVideoFrameSource {
         return frame;
     }
 }
-function to_array_buffer(pbab) {
+function to_buffer(pbab) {
     if (!pbab) {
         return pbab;
     }
-    if (pbab instanceof ArrayBuffer) {
+    if (pbab instanceof Buffer) {
         return pbab;
     }
-    return pbab.toArrayBuffer();
+    return Buffer.from(pbab.toArrayBuffer());
 }
 class CallingMessage {
 }
