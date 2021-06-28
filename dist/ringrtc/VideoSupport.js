@@ -201,7 +201,8 @@ class GumVideoCapturer {
             let duration = Date.now() - this.capturingStartTime;
             this.drawFakeVideo(this.canvasContext, width, height, this.fakeVideoName, duration);
             const image = this.canvasContext.getImageData(0, 0, width, height);
-            this.sender.sendVideoFrame(image.width, image.height, Buffer.from(image.data.buffer));
+            let bufferWithoutCopying = Buffer.from(image.data.buffer, image.data.byteOffset, image.data.byteLength);
+            this.sender.sendVideoFrame(image.width, image.height, bufferWithoutCopying);
             return;
         }
         if (this.localPreview && this.localPreview.current) {
@@ -215,7 +216,8 @@ class GumVideoCapturer {
             }
             this.canvasContext.drawImage(this.localPreview.current, 0, 0, width, height);
             const image = this.canvasContext.getImageData(0, 0, width, height);
-            this.sender.sendVideoFrame(image.width, image.height, Buffer.from(image.data.buffer));
+            let bufferWithoutCopying = Buffer.from(image.data.buffer, image.data.byteOffset, image.data.byteLength);
+            this.sender.sendVideoFrame(image.width, image.height, bufferWithoutCopying);
         }
     }
     drawFakeVideo(context, width, height, name, time) {
@@ -367,7 +369,7 @@ class CanvasVideoRenderer {
             context.fillRect(0, 0, canvas.width, canvas.height);
         }
         // Share the same buffer as this.buffer.
-        const clampedArrayBuffer = new Uint8ClampedArray(this.buffer.buffer, 0, width * height * 4);
+        const clampedArrayBuffer = new Uint8ClampedArray(this.buffer.buffer, this.buffer.byteOffset, width * height * 4);
         context.putImageData(new ImageData(clampedArrayBuffer, width, height), dx, dy);
     }
 }
