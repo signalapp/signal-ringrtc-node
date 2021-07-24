@@ -13,11 +13,16 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.CallLogLevel = exports.CallEndedReason = exports.CallState = exports.BandwidthMode = exports.HangupType = exports.OpaqueMessage = exports.HangupMessage = exports.BusyMessage = exports.IceCandidateMessage = exports.AnswerMessage = exports.OfferType = exports.OfferMessage = exports.CallingMessage = exports.GroupCall = exports.VideoRequest = exports.GroupMemberInfo = exports.RemoteDeviceState = exports.LocalDeviceState = exports.HttpMethod = exports.GroupCallEndReason = exports.JoinState = exports.ConnectionState = exports.Call = exports.RingRTCType = exports.PeekInfo = void 0;
 /* tslint:disable max-classes-per-file */
 const os = require("os");
 const process = require("process");
 // tslint:disable-next-line no-var-requires no-require-imports
-const Native = require('../../build/' + os.platform() + '/libringrtc-' + process.arch + '.node');
+const Native = require('../../build/' +
+    os.platform() +
+    '/libringrtc-' +
+    process.arch +
+    '.node');
 // tslint:disable-next-line no-unnecessary-class
 class NativeCallManager {
     constructor() {
@@ -29,47 +34,70 @@ class NativeCallManager {
 }
 // Mirror methods onto NativeCallManager.
 // This is done through direct assignment rather than wrapper methods to avoid indirection.
-NativeCallManager.prototype.createOutgoingCall = Native.cm_createOutgoingCall;
+NativeCallManager.prototype.createOutgoingCall =
+    Native.cm_createOutgoingCall;
 NativeCallManager.prototype.proceed = Native.cm_proceed;
 NativeCallManager.prototype.accept = Native.cm_accept;
 NativeCallManager.prototype.ignore = Native.cm_ignore;
 NativeCallManager.prototype.hangup = Native.cm_hangup;
-NativeCallManager.prototype.signalingMessageSent = Native.cm_signalingMessageSent;
-NativeCallManager.prototype.signalingMessageSendFailed = Native.cm_signalingMessageSendFailed;
-NativeCallManager.prototype.updateBandwidthMode = Native.cm_updateBandwidthMode;
+NativeCallManager.prototype.signalingMessageSent =
+    Native.cm_signalingMessageSent;
+NativeCallManager.prototype.signalingMessageSendFailed =
+    Native.cm_signalingMessageSendFailed;
+NativeCallManager.prototype.updateBandwidthMode =
+    Native.cm_updateBandwidthMode;
 NativeCallManager.prototype.receivedOffer = Native.cm_receivedOffer;
 NativeCallManager.prototype.receivedAnswer = Native.cm_receivedAnswer;
-NativeCallManager.prototype.receivedIceCandidates = Native.cm_receivedIceCandidates;
+NativeCallManager.prototype.receivedIceCandidates =
+    Native.cm_receivedIceCandidates;
 NativeCallManager.prototype.receivedHangup = Native.cm_receivedHangup;
 NativeCallManager.prototype.receivedBusy = Native.cm_receivedBusy;
-NativeCallManager.prototype.receivedCallMessage = Native.cm_receivedCallMessage;
-NativeCallManager.prototype.receivedHttpResponse = Native.cm_receivedHttpResponse;
-NativeCallManager.prototype.httpRequestFailed = Native.cm_httpRequestFailed;
-NativeCallManager.prototype.setOutgoingAudioEnabled = Native.cm_setOutgoingAudioEnabled;
-NativeCallManager.prototype.setOutgoingVideoEnabled = Native.cm_setOutgoingVideoEnabled;
-NativeCallManager.prototype.setOutgoingVideoIsScreenShare = Native.cm_setOutgoingVideoIsScreenShare;
+NativeCallManager.prototype.receivedCallMessage =
+    Native.cm_receivedCallMessage;
+NativeCallManager.prototype.receivedHttpResponse =
+    Native.cm_receivedHttpResponse;
+NativeCallManager.prototype.httpRequestFailed =
+    Native.cm_httpRequestFailed;
+NativeCallManager.prototype.setOutgoingAudioEnabled =
+    Native.cm_setOutgoingAudioEnabled;
+NativeCallManager.prototype.setOutgoingVideoEnabled =
+    Native.cm_setOutgoingVideoEnabled;
+NativeCallManager.prototype.setOutgoingVideoIsScreenShare =
+    Native.cm_setOutgoingVideoIsScreenShare;
 NativeCallManager.prototype.sendVideoFrame = Native.cm_sendVideoFrame;
-NativeCallManager.prototype.receiveVideoFrame = Native.cm_receiveVideoFrame;
-NativeCallManager.prototype.receiveGroupCallVideoFrame = Native.cm_receiveGroupCallVideoFrame;
-NativeCallManager.prototype.createGroupCallClient = Native.cm_createGroupCallClient;
-NativeCallManager.prototype.deleteGroupCallClient = Native.cm_deleteGroupCallClient;
+NativeCallManager.prototype.receiveVideoFrame =
+    Native.cm_receiveVideoFrame;
+NativeCallManager.prototype.receiveGroupCallVideoFrame =
+    Native.cm_receiveGroupCallVideoFrame;
+NativeCallManager.prototype.createGroupCallClient =
+    Native.cm_createGroupCallClient;
+NativeCallManager.prototype.deleteGroupCallClient =
+    Native.cm_deleteGroupCallClient;
 NativeCallManager.prototype.connect = Native.cm_connect;
 NativeCallManager.prototype.join = Native.cm_join;
 NativeCallManager.prototype.leave = Native.cm_leave;
 NativeCallManager.prototype.disconnect = Native.cm_disconnect;
-NativeCallManager.prototype.setOutgoingAudioMuted = Native.cm_setOutgoingAudioMuted;
-NativeCallManager.prototype.setOutgoingVideoMuted = Native.cm_setOutgoingVideoMuted;
-NativeCallManager.prototype.setOutgoingGroupCallVideoIsScreenShare = Native.cm_setOutgoingGroupCallVideoIsScreenShare;
+NativeCallManager.prototype.setOutgoingAudioMuted =
+    Native.cm_setOutgoingAudioMuted;
+NativeCallManager.prototype.setOutgoingVideoMuted =
+    Native.cm_setOutgoingVideoMuted;
+NativeCallManager.prototype.setOutgoingGroupCallVideoIsScreenShare =
+    Native.cm_setOutgoingGroupCallVideoIsScreenShare;
 NativeCallManager.prototype.setPresenting = Native.cm_setPresenting;
-NativeCallManager.prototype.resendMediaKeys = Native.cm_resendMediaKeys;
-NativeCallManager.prototype.setBandwidthMode = Native.cm_setBandwidthMode;
+NativeCallManager.prototype.resendMediaKeys =
+    Native.cm_resendMediaKeys;
+NativeCallManager.prototype.setBandwidthMode =
+    Native.cm_setBandwidthMode;
 NativeCallManager.prototype.requestVideo = Native.cm_requestVideo;
-NativeCallManager.prototype.setGroupMembers = Native.cm_setGroupMembers;
-NativeCallManager.prototype.setMembershipProof = Native.cm_setMembershipProof;
+NativeCallManager.prototype.setGroupMembers =
+    Native.cm_setGroupMembers;
+NativeCallManager.prototype.setMembershipProof =
+    Native.cm_setMembershipProof;
 NativeCallManager.prototype.peekGroupCall = Native.cm_peekGroupCall;
 NativeCallManager.prototype.getAudioInputs = Native.cm_getAudioInputs;
 NativeCallManager.prototype.setAudioInput = Native.cm_setAudioInput;
-NativeCallManager.prototype.getAudioOutputs = Native.cm_getAudioOutputs;
+NativeCallManager.prototype.getAudioOutputs =
+    Native.cm_getAudioOutputs;
 NativeCallManager.prototype.setAudioOutput = Native.cm_setAudioOutput;
 NativeCallManager.prototype.poll = Native.cm_poll;
 class PeekInfo {
@@ -189,17 +217,19 @@ class RingRTCType {
     onCallEnded(remoteUserId, reason) {
         const call = this._call;
         // Temporary: Force hangup in all glare scenarios until handled gracefully.
-        if (call && (reason === CallEndedReason.ReceivedOfferWithGlare || reason === CallEndedReason.Glare)) {
+        if (call &&
+            (reason === CallEndedReason.ReceivedOfferWithGlare ||
+                reason === CallEndedReason.Glare)) {
             call.hangup();
         }
         // If there is no call or the remoteUserId doesn't match that of
         // the current call, or if one of the "receive offer while alread
-        // in a call" reasons are provided, don't end the current call, 
+        // in a call" reasons are provided, don't end the current call,
         // just update the call history.
         if (!call ||
-            (call.remoteUserId !== remoteUserId) ||
-            (reason === CallEndedReason.ReceivedOfferWhileActive) ||
-            (reason === CallEndedReason.ReceivedOfferExpired)) {
+            call.remoteUserId !== remoteUserId ||
+            reason === CallEndedReason.ReceivedOfferWhileActive ||
+            reason === CallEndedReason.ReceivedOfferExpired) {
             if (this.handleAutoEndedIncomingCallRequest) {
                 this.handleAutoEndedIncomingCallRequest(remoteUserId, reason);
             }
@@ -456,7 +486,8 @@ class RingRTCType {
     // tslint:disable-next-line cyclomatic-complexity
     handleCallingMessage(remoteUserId, remoteUuid, remoteDeviceId, localDeviceId, messageAgeSec, message, senderIdentityKey, receiverIdentityKey) {
         const remoteSupportsMultiRing = message.supportsMultiRing || false;
-        if (message.destinationDeviceId && message.destinationDeviceId !== localDeviceId) {
+        if (message.destinationDeviceId &&
+            message.destinationDeviceId !== localDeviceId) {
             // Drop the message as it isn't for this device, handleIgnoredCall() is not needed.
             return;
         }
@@ -540,7 +571,7 @@ class RingRTCType {
             this.handleSendHttpRequest(requestId, url, method, headers, body);
         }
         else {
-            console.log("RingRTC.handleSendHttpRequest is not set!");
+            console.log('RingRTC.handleSendHttpRequest is not set!');
         }
     }
     // Called by Rust
@@ -549,7 +580,7 @@ class RingRTCType {
             this.handleSendCallMessage(recipientUuid, message);
         }
         else {
-            console.log("RingRTC.handleSendCallMessage is not set!");
+            console.log('RingRTC.handleSendCallMessage is not set!');
         }
     }
     // These are convenience methods.  One could use the Call class instead.
@@ -558,7 +589,9 @@ class RingRTCType {
     }
     getCall(callId) {
         const { call } = this;
-        if (call && call.callId.high === callId.high && call.callId.low === call.callId.low) {
+        if (call &&
+            call.callId.high === callId.high &&
+            call.callId.low === call.callId.low) {
             return call;
         }
         return null;
@@ -1023,11 +1056,11 @@ class GroupCall {
     }
     // Called by Rust via RingRTC object
     handleRemoteDevicesChanged(remoteDeviceStates) {
-        var _a, _b;
+        var _a;
         // We don't get aspect ratios from RingRTC, so make sure to copy them over.
         for (const noo of remoteDeviceStates) {
-            const old = (_a = this._remoteDeviceStates) === null || _a === void 0 ? void 0 : _a.find((old) => old.demuxId == noo.demuxId);
-            noo.videoAspectRatio = (_b = old) === null || _b === void 0 ? void 0 : _b.videoAspectRatio;
+            const old = (_a = this._remoteDeviceStates) === null || _a === void 0 ? void 0 : _a.find(old => old.demuxId == noo.demuxId);
+            noo.videoAspectRatio = old === null || old === void 0 ? void 0 : old.videoAspectRatio;
         }
         this._remoteDeviceStates = remoteDeviceStates;
         this._observer.onRemoteDeviceStatesChanged(this);
@@ -1054,7 +1087,7 @@ class GroupCall {
     // Called by the GroupCallVideoFrameSource when it receives a video frame.
     setRemoteAspectRatio(remoteDemuxId, aspectRatio) {
         var _a;
-        const remoteDevice = (_a = this._remoteDeviceStates) === null || _a === void 0 ? void 0 : _a.find((device) => device.demuxId == remoteDemuxId);
+        const remoteDevice = (_a = this._remoteDeviceStates) === null || _a === void 0 ? void 0 : _a.find(device => device.demuxId == remoteDemuxId);
         if (!!remoteDevice && remoteDevice.videoAspectRatio != aspectRatio) {
             remoteDevice.videoAspectRatio = aspectRatio;
             this._observer.onRemoteDeviceStatesChanged(this);
@@ -1064,7 +1097,8 @@ class GroupCall {
 exports.GroupCall = GroupCall;
 // Implements VideoSource for use in CanvasVideoRenderer
 class GroupCallVideoFrameSource {
-    constructor(callManager, groupCall, remoteDemuxId) {
+    constructor(callManager, groupCall, remoteDemuxId // Uint32
+    ) {
         this._callManager = callManager;
         this._groupCall = groupCall;
         this._remoteDemuxId = remoteDemuxId;

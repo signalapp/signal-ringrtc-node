@@ -1,5 +1,5 @@
 /// <reference types="node" />
-import { GumVideoCaptureOptions } from "./VideoSupport";
+import { GumVideoCaptureOptions } from './VideoSupport';
 declare type GroupCallUserId = Buffer;
 export declare class PeekInfo {
     joinedMembers: Array<GroupCallUserId>;

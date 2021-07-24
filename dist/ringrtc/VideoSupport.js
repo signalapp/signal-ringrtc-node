@@ -13,6 +13,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.CanvasVideoRenderer = exports.MAX_VIDEO_CAPTURE_BUFFER_SIZE = exports.MAX_VIDEO_CAPTURE_AREA = exports.MAX_VIDEO_CAPTURE_HEIGHT = exports.MAX_VIDEO_CAPTURE_WIDTH = exports.GumVideoCapturer = exports.GumVideoCaptureOptions = void 0;
 class GumVideoCaptureOptions {
     constructor() {
         this.maxWidth = 640;
@@ -37,7 +38,7 @@ class GumVideoCapturer {
     }
     enableCaptureAndSend(sender, options) {
         // tslint:disable no-floating-promises
-        this.startCapturing((options !== null && options !== void 0 ? options : this.defaultCaptureOptions));
+        this.startCapturing(options !== null && options !== void 0 ? options : this.defaultCaptureOptions);
         this.startSending(sender);
     }
     disable() {
@@ -61,7 +62,7 @@ class GumVideoCapturer {
     enumerateDevices() {
         return __awaiter(this, void 0, void 0, function* () {
             const devices = yield window.navigator.mediaDevices.enumerateDevices();
-            const cameras = devices.filter(d => d.kind == "videoinput");
+            const cameras = devices.filter(d => d.kind == 'videoinput');
             return cameras;
         });
     }
@@ -71,7 +72,7 @@ class GumVideoCapturer {
         let constraints = {
             audio: false,
             video: {
-                deviceId: (_a = options.preferredDeviceId, (_a !== null && _a !== void 0 ? _a : this.preferredDeviceId)),
+                deviceId: (_a = options.preferredDeviceId) !== null && _a !== void 0 ? _a : this.preferredDeviceId,
                 width: {
                     max: options.maxWidth,
                 },
@@ -91,7 +92,7 @@ class GumVideoCapturer {
                     maxWidth: options.maxWidth,
                     maxHeight: options.maxHeight,
                     maxFrameRate: options.maxFramerate,
-                }
+                },
             };
         }
         return window.navigator.mediaDevices.getUserMedia(constraints);
@@ -195,7 +196,8 @@ class GumVideoCapturer {
         if (!this.canvas || !this.canvasContext || !this.sender) {
             return;
         }
-        if ((this.fakeVideoName != undefined) && (this.capturingStartTime != undefined)) {
+        if (this.fakeVideoName != undefined &&
+            this.capturingStartTime != undefined) {
             let width = 640;
             let height = 480;
             let duration = Date.now() - this.capturingStartTime;
@@ -246,10 +248,10 @@ class GumVideoCapturer {
             const eyeOffsetY = -faceRadius / 4;
             const smileRadius = faceRadius / 2;
             const smileOffsetY = -eyeOffsetY;
-            fill("yellow", () => circle(x, y, faceRadius));
-            fill("black", () => circle(x - eyeOffsetX, y + eyeOffsetY, eyeRadius));
-            fill("black", () => circle(x + eyeOffsetX, y + eyeOffsetY, eyeRadius));
-            stroke("black", () => arc(x, y + smileOffsetY, smileRadius, 0, 0.5));
+            fill('yellow', () => circle(x, y, faceRadius));
+            fill('black', () => circle(x - eyeOffsetX, y + eyeOffsetY, eyeRadius));
+            fill('black', () => circle(x + eyeOffsetX, y + eyeOffsetY, eyeRadius));
+            stroke('black', () => arc(x, y + smileOffsetY, smileRadius, 0, 0.5));
         }
         function fillText(x, y, fillStyle, fontSize, fontName, align, text) {
             context.font = `${fontSize}px ${fontName}`;
@@ -258,10 +260,10 @@ class GumVideoCapturer {
             context.fillText(text, x, y);
         }
         function fillLabeledFace(x, y, faceRadius, label) {
-            const labelSize = faceRadius * .3;
+            const labelSize = faceRadius * 0.3;
             const labelOffsetY = faceRadius * 1.5;
             fillFace(x, y, faceRadius);
-            fillText(x, y + labelOffsetY, "black", labelSize, "monospace", "center", label);
+            fillText(x, y + labelOffsetY, 'black', labelSize, 'monospace', 'center', label);
         }
         context.fillStyle = 'white';
         context.fillRect(0, 0, width, height);
@@ -339,8 +341,10 @@ class CanvasVideoRenderer {
             return;
         }
         const [width, height] = frame;
-        if (canvas.clientWidth <= 0 || width <= 0 ||
-            canvas.clientHeight <= 0 || height <= 0) {
+        if (canvas.clientWidth <= 0 ||
+            width <= 0 ||
+            canvas.clientHeight <= 0 ||
+            height <= 0) {
             return;
         }
         const frameAspectRatio = width / height;
