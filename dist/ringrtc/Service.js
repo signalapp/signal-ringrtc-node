@@ -13,7 +13,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.CallLogLevel = exports.CallEndedReason = exports.CallState = exports.BandwidthMode = exports.HangupType = exports.OpaqueMessage = exports.HangupMessage = exports.BusyMessage = exports.IceCandidateMessage = exports.AnswerMessage = exports.OfferType = exports.OfferMessage = exports.CallingMessage = exports.GroupCall = exports.VideoRequest = exports.GroupMemberInfo = exports.RemoteDeviceState = exports.LocalDeviceState = exports.HttpMethod = exports.GroupCallEndReason = exports.JoinState = exports.ConnectionState = exports.Call = exports.RingRTCType = exports.PeekInfo = void 0;
+exports.CallLogLevel = exports.CallEndedReason = exports.CallState = exports.RingCancelReason = exports.BandwidthMode = exports.HangupType = exports.OpaqueMessage = exports.HangupMessage = exports.BusyMessage = exports.IceCandidateMessage = exports.AnswerMessage = exports.OfferType = exports.OfferMessage = exports.CallingMessage = exports.GroupCall = exports.VideoRequest = exports.GroupMemberInfo = exports.RemoteDeviceState = exports.LocalDeviceState = exports.HttpMethod = exports.RingUpdate = exports.CallMessageUrgency = exports.GroupCallEndReason = exports.JoinState = exports.ConnectionState = exports.Call = exports.RingRTCType = exports.PeekInfo = void 0;
 /* tslint:disable max-classes-per-file */
 const os = require("os");
 const process = require("process");
@@ -34,12 +34,15 @@ class NativeCallManager {
 }
 // Mirror methods onto NativeCallManager.
 // This is done through direct assignment rather than wrapper methods to avoid indirection.
+NativeCallManager.prototype.setSelfUuid = Native.cm_setSelfUuid;
 NativeCallManager.prototype.createOutgoingCall =
     Native.cm_createOutgoingCall;
 NativeCallManager.prototype.proceed = Native.cm_proceed;
 NativeCallManager.prototype.accept = Native.cm_accept;
 NativeCallManager.prototype.ignore = Native.cm_ignore;
 NativeCallManager.prototype.hangup = Native.cm_hangup;
+NativeCallManager.prototype.cancelGroupRing =
+    Native.cm_cancelGroupRing;
 NativeCallManager.prototype.signalingMessageSent =
     Native.cm_signalingMessageSent;
 NativeCallManager.prototype.signalingMessageSendFailed =
@@ -77,6 +80,7 @@ NativeCallManager.prototype.connect = Native.cm_connect;
 NativeCallManager.prototype.join = Native.cm_join;
 NativeCallManager.prototype.leave = Native.cm_leave;
 NativeCallManager.prototype.disconnect = Native.cm_disconnect;
+NativeCallManager.prototype.groupRing = Native.cm_groupRing;
 NativeCallManager.prototype.setOutgoingAudioMuted =
     Native.cm_setOutgoingAudioMuted;
 NativeCallManager.prototype.setOutgoingVideoMuted =
@@ -138,6 +142,8 @@ class RingRTCType {
         this.handleLogMessage = null;
         this.handleSendHttpRequest = null;
         this.handleSendCallMessage = null;
+        this.handleSendCallMessageToGroup = null;
+        this.handleGroupCallRingUpdate = null;
         this.callManager = new NativeCallManager();
         this._call = null;
         this._groupCallByClientId = new Map();
@@ -151,6 +157,10 @@ class RingRTCType {
         }, intervalMs);
     }
     // Called by UX
+    setSelfUuid(uuid) {
+        this.callManager.setSelfUuid(uuid);
+    }
+    // Called by UX
     startOutgoingCall(remoteUserId, isVideoCall, localDeviceId, settings) {
         const callId = this.callManager.createOutgoingCall(remoteUserId, isVideoCall, localDeviceId);
         const isIncoming = false;
@@ -160,6 +170,12 @@ class RingRTCType {
         call.outgoingAudioEnabled = true;
         call.outgoingVideoEnabled = isVideoCall;
         return call;
+    }
+    // Called by UX
+    cancelGroupRing(groupId, ringId, reason) {
+        silly_deadlock_protection(() => {
+            this.callManager.cancelGroupRing(groupId, ringId.toString(), reason);
+        });
     }
     // Called by Rust
     onStartOutgoingCall(remoteUserId, callId) {
@@ -477,6 +493,18 @@ class RingRTCType {
         });
     }
     // Called by Rust
+    groupCallRingUpdate(groupId, ringIdString, sender, state) {
+        silly_deadlock_protection(() => {
+            if (this.handleGroupCallRingUpdate) {
+                const ringId = BigInt(ringIdString);
+                this.handleGroupCallRingUpdate(groupId, ringId, sender, state);
+            }
+            else {
+                console.log('RingRTC.handleGroupCallRingUpdate is not set!');
+            }
+        });
+    }
+    // Called by Rust
     onLogMessage(level, fileName, line, message) {
         if (this.handleLogMessage) {
             this.handleLogMessage(level, fileName, line, message);
@@ -575,12 +603,21 @@ class RingRTCType {
         }
     }
     // Called by Rust
-    sendCallMessage(recipientUuid, message) {
+    sendCallMessage(recipientUuid, message, urgency) {
         if (this.handleSendCallMessage) {
-            this.handleSendCallMessage(recipientUuid, message);
+            this.handleSendCallMessage(recipientUuid, message, urgency);
         }
         else {
             console.log('RingRTC.handleSendCallMessage is not set!');
+        }
+    }
+    // Called by Rust
+    sendCallMessageToGroup(groupId, message, urgency) {
+        if (this.handleSendCallMessageToGroup) {
+            this.handleSendCallMessageToGroup(groupId, message, urgency);
+        }
+        else {
+            console.log('RingRTC.handleSendCallMessageToGroup is not set!');
         }
     }
     // These are convenience methods.  One could use the Call class instead.
@@ -904,6 +941,28 @@ var GroupCallEndReason;
     GroupCallEndReason[GroupCallEndReason["ServerChangedDemuxId"] = 13] = "ServerChangedDemuxId";
     GroupCallEndReason[GroupCallEndReason["HasMaxDevices"] = 14] = "HasMaxDevices";
 })(GroupCallEndReason = exports.GroupCallEndReason || (exports.GroupCallEndReason = {}));
+var CallMessageUrgency;
+(function (CallMessageUrgency) {
+    CallMessageUrgency[CallMessageUrgency["Droppable"] = 0] = "Droppable";
+    CallMessageUrgency[CallMessageUrgency["HandleImmediately"] = 1] = "HandleImmediately";
+})(CallMessageUrgency = exports.CallMessageUrgency || (exports.CallMessageUrgency = {}));
+var RingUpdate;
+(function (RingUpdate) {
+    /// The sender is trying to ring this user.
+    RingUpdate[RingUpdate["Requested"] = 0] = "Requested";
+    /// The sender tried to ring this user, but it's been too long.
+    RingUpdate[RingUpdate["ExpiredRequest"] = 1] = "ExpiredRequest";
+    /// Call was accepted elsewhere by a different device.
+    RingUpdate[RingUpdate["AcceptedOnAnotherDevice"] = 2] = "AcceptedOnAnotherDevice";
+    /// Call was declined elsewhere by a different device.
+    RingUpdate[RingUpdate["DeclinedOnAnotherDevice"] = 3] = "DeclinedOnAnotherDevice";
+    /// This device is currently on a different call.
+    RingUpdate[RingUpdate["BusyLocally"] = 4] = "BusyLocally";
+    /// A different device is currently on a different call.
+    RingUpdate[RingUpdate["BusyOnAnotherDevice"] = 5] = "BusyOnAnotherDevice";
+    /// The sender cancelled the ring request.
+    RingUpdate[RingUpdate["CancelledByRinger"] = 6] = "CancelledByRinger";
+})(RingUpdate = exports.RingUpdate || (exports.RingUpdate = {}));
 // HTTP request methods.
 var HttpMethod;
 (function (HttpMethod) {
@@ -1015,6 +1074,10 @@ class GroupCall {
         this._localDeviceState.sharingScreen = isScreenShare;
         this._callManager.setOutgoingGroupCallVideoIsScreenShare(this._clientId, isScreenShare);
         this._observer.onLocalDeviceStateChanged(this);
+    }
+    // Called by UI
+    ringAll() {
+        this._callManager.groupRing(this._clientId, undefined);
     }
     // Called by UI
     resendMediaKeys() {
@@ -1162,6 +1225,14 @@ var BandwidthMode;
     BandwidthMode[BandwidthMode["Low"] = 1] = "Low";
     BandwidthMode[BandwidthMode["Normal"] = 2] = "Normal";
 })(BandwidthMode = exports.BandwidthMode || (exports.BandwidthMode = {}));
+/// Describes why a ring was cancelled.
+var RingCancelReason;
+(function (RingCancelReason) {
+    /// The user explicitly clicked "Decline".
+    RingCancelReason[RingCancelReason["DeclinedByUser"] = 0] = "DeclinedByUser";
+    /// The device is busy with another call.
+    RingCancelReason[RingCancelReason["Busy"] = 1] = "Busy";
+})(RingCancelReason = exports.RingCancelReason || (exports.RingCancelReason = {}));
 var CallState;
 (function (CallState) {
     CallState["Prering"] = "init";

@@ -4,12 +4,13 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 //
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.RingRTC = exports.MAX_VIDEO_CAPTURE_WIDTH = exports.MAX_VIDEO_CAPTURE_HEIGHT = exports.MAX_VIDEO_CAPTURE_BUFFER_SIZE = exports.MAX_VIDEO_CAPTURE_AREA = exports.GumVideoCapturer = exports.CanvasVideoRenderer = exports.VideoRequest = exports.RingRTCType = exports.RemoteDeviceState = exports.PeekInfo = exports.OpaqueMessage = exports.OfferType = exports.LocalDeviceState = exports.JoinState = exports.HttpMethod = exports.HangupType = exports.HangupMessage = exports.GroupMemberInfo = exports.GroupCallEndReason = exports.GroupCall = exports.ConnectionState = exports.CallingMessage = exports.CallState = exports.CallLogLevel = exports.CallEndedReason = exports.Call = exports.BandwidthMode = void 0;
+exports.RingRTC = exports.MAX_VIDEO_CAPTURE_WIDTH = exports.MAX_VIDEO_CAPTURE_HEIGHT = exports.MAX_VIDEO_CAPTURE_BUFFER_SIZE = exports.MAX_VIDEO_CAPTURE_AREA = exports.GumVideoCapturer = exports.CanvasVideoRenderer = exports.VideoRequest = exports.RingUpdate = exports.RingRTCType = exports.RingCancelReason = exports.RemoteDeviceState = exports.PeekInfo = exports.OpaqueMessage = exports.OfferType = exports.LocalDeviceState = exports.JoinState = exports.HttpMethod = exports.HangupType = exports.HangupMessage = exports.GroupMemberInfo = exports.GroupCallEndReason = exports.GroupCall = exports.ConnectionState = exports.CallingMessage = exports.CallState = exports.CallMessageUrgency = exports.CallLogLevel = exports.CallEndedReason = exports.Call = exports.BandwidthMode = void 0;
 var Service_1 = require("./ringrtc/Service");
 Object.defineProperty(exports, "BandwidthMode", { enumerable: true, get: function () { return Service_1.BandwidthMode; } });
 Object.defineProperty(exports, "Call", { enumerable: true, get: function () { return Service_1.Call; } });
 Object.defineProperty(exports, "CallEndedReason", { enumerable: true, get: function () { return Service_1.CallEndedReason; } });
 Object.defineProperty(exports, "CallLogLevel", { enumerable: true, get: function () { return Service_1.CallLogLevel; } });
+Object.defineProperty(exports, "CallMessageUrgency", { enumerable: true, get: function () { return Service_1.CallMessageUrgency; } });
 Object.defineProperty(exports, "CallState", { enumerable: true, get: function () { return Service_1.CallState; } });
 Object.defineProperty(exports, "CallingMessage", { enumerable: true, get: function () { return Service_1.CallingMessage; } });
 Object.defineProperty(exports, "ConnectionState", { enumerable: true, get: function () { return Service_1.ConnectionState; } });
@@ -25,7 +26,9 @@ Object.defineProperty(exports, "OfferType", { enumerable: true, get: function ()
 Object.defineProperty(exports, "OpaqueMessage", { enumerable: true, get: function () { return Service_1.OpaqueMessage; } });
 Object.defineProperty(exports, "PeekInfo", { enumerable: true, get: function () { return Service_1.PeekInfo; } });
 Object.defineProperty(exports, "RemoteDeviceState", { enumerable: true, get: function () { return Service_1.RemoteDeviceState; } });
+Object.defineProperty(exports, "RingCancelReason", { enumerable: true, get: function () { return Service_1.RingCancelReason; } });
 Object.defineProperty(exports, "RingRTCType", { enumerable: true, get: function () { return Service_1.RingRTCType; } });
+Object.defineProperty(exports, "RingUpdate", { enumerable: true, get: function () { return Service_1.RingUpdate; } });
 Object.defineProperty(exports, "VideoRequest", { enumerable: true, get: function () { return Service_1.VideoRequest; } });
 var VideoSupport_1 = require("./ringrtc/VideoSupport");
 Object.defineProperty(exports, "CanvasVideoRenderer", { enumerable: true, get: function () { return VideoSupport_1.CanvasVideoRenderer; } });

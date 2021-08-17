@@ -1,5 +1,6 @@
 /// <reference types="node" />
 import { GumVideoCaptureOptions } from './VideoSupport';
+declare type GroupId = Buffer;
 declare type GroupCallUserId = Buffer;
 export declare class PeekInfo {
     joinedMembers: Array<GroupCallUserId>;
@@ -21,10 +22,14 @@ export declare class RingRTCType {
     handleSendHttpRequest: ((requestId: number, url: string, method: HttpMethod, headers: {
         [name: string]: string;
     }, body: Buffer | undefined) => void) | null;
-    handleSendCallMessage: ((recipientUuid: Buffer, message: Buffer) => void) | null;
+    handleSendCallMessage: ((recipientUuid: Buffer, message: Buffer, urgency: CallMessageUrgency) => void) | null;
+    handleSendCallMessageToGroup: ((groupId: Buffer, message: Buffer, urgency: CallMessageUrgency) => void) | null;
+    handleGroupCallRingUpdate: ((groupId: Buffer, ringId: bigint, sender: Buffer, update: RingUpdate) => void) | null;
     constructor();
     private pollEvery;
+    setSelfUuid(uuid: UserId): void;
     startOutgoingCall(remoteUserId: UserId, isVideoCall: boolean, localDeviceId: DeviceId, settings: CallSettings): Call;
+    cancelGroupRing(groupId: GroupId, ringId: bigint, reason: RingCancelReason | null): void;
     onStartOutgoingCall(remoteUserId: UserId, callId: CallId): void;
     onStartIncomingCall(remoteUserId: UserId, callId: CallId, isVideoCall: boolean): void;
     private proceed;
@@ -52,12 +57,14 @@ export declare class RingRTCType {
     handlePeekChanged(clientId: GroupCallClientId, info: PeekInfo): void;
     handlePeekResponse(request_id: number, info: PeekInfo): void;
     handleEnded(clientId: GroupCallClientId, reason: GroupCallEndReason): void;
+    groupCallRingUpdate(groupId: GroupId, ringIdString: string, sender: GroupCallUserId, state: RingUpdate): void;
     onLogMessage(level: number, fileName: string, line: number, message: string): void;
     handleCallingMessage(remoteUserId: UserId, remoteUuid: Buffer | null, remoteDeviceId: DeviceId, localDeviceId: DeviceId, messageAgeSec: number, message: CallingMessage, senderIdentityKey: Buffer, receiverIdentityKey: Buffer): void;
     sendHttpRequest(requestId: number, url: string, method: HttpMethod, headers: {
         [name: string]: string;
     }, body: Buffer | undefined): void;
-    sendCallMessage(recipientUuid: Buffer, message: Buffer): void;
+    sendCallMessage(recipientUuid: Buffer, message: Buffer, urgency: CallMessageUrgency): void;
+    sendCallMessageToGroup(groupId: Buffer, message: Buffer, urgency: CallMessageUrgency): void;
     get call(): Call | null;
     getCall(callId: CallId): Call | null;
     accept(callId: CallId, asVideoCall: boolean): void;
@@ -174,6 +181,19 @@ export declare enum GroupCallEndReason {
     ServerChangedDemuxId = 13,
     HasMaxDevices = 14
 }
+export declare enum CallMessageUrgency {
+    Droppable = 0,
+    HandleImmediately = 1
+}
+export declare enum RingUpdate {
+    Requested = 0,
+    ExpiredRequest = 1,
+    AcceptedOnAnotherDevice = 2,
+    DeclinedOnAnotherDevice = 3,
+    BusyLocally = 4,
+    BusyOnAnotherDevice = 5,
+    CancelledByRinger = 6
+}
 export declare enum HttpMethod {
     Get = 0,
     Put = 1,
@@ -242,6 +262,7 @@ export declare class GroupCall {
     setOutgoingVideoMuted(muted: boolean): void;
     setPresenting(presenting: boolean): void;
     setOutgoingVideoIsScreenShare(isScreenShare: boolean): void;
+    ringAll(): void;
     resendMediaKeys(): void;
     setBandwidthMode(bandwidthMode: BandwidthMode): void;
     requestVideo(resolutions: Array<VideoRequest>): void;
@@ -327,12 +348,18 @@ export declare enum BandwidthMode {
     Low = 1,
     Normal = 2
 }
+export declare enum RingCancelReason {
+    DeclinedByUser = 0,
+    Busy = 1
+}
 export interface CallManager {
+    setSelfUuid(uuid: UserId): void;
     createOutgoingCall(remoteUserId: UserId, isVideoCall: boolean, localDeviceId: DeviceId): CallId;
     proceed(callId: CallId, iceServerUsername: string, iceServerPassword: string, iceServerUrls: Array<string>, hideIp: boolean, bandwidthMode: BandwidthMode): void;
     accept(callId: CallId): void;
     ignore(callId: CallId): void;
     hangup(): void;
+    cancelGroupRing(groupId: GroupId, ringId: string, reason: RingCancelReason | null): void;
     signalingMessageSent(callId: CallId): void;
     signalingMessageSendFailed(callId: CallId): void;
     setOutgoingAudioEnabled(enabled: boolean): void;
@@ -359,6 +386,7 @@ export interface CallManager {
     setOutgoingVideoMuted(clientId: GroupCallClientId, muted: boolean): void;
     setPresenting(clientId: GroupCallClientId, presenting: boolean): void;
     setOutgoingGroupCallVideoIsScreenShare(clientId: GroupCallClientId, isScreenShare: boolean): void;
+    groupRing(clientId: GroupCallClientId, recipient: Buffer | undefined): void;
     resendMediaKeys(clientId: GroupCallClientId): void;
     setBandwidthMode(clientId: GroupCallClientId, bandwidthMode: BandwidthMode): void;
     requestVideo(clientId: GroupCallClientId, resolutions: Array<VideoRequest>): void;
@@ -385,7 +413,8 @@ export interface CallManagerCallbacks {
     onSendLegacyHangup(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean, HangupType: HangupType, hangupDeviceId: DeviceId | null): void;
     onSendHangup(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean, HangupType: HangupType, hangupDeviceId: DeviceId | null): void;
     onSendBusy(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean): void;
-    sendCallMessage(recipientUuid: Buffer, message: Buffer): void;
+    sendCallMessage(recipientUuid: Buffer, message: Buffer, urgency: CallMessageUrgency): void;
+    sendCallMessageToGroup(groupId: Buffer, message: Buffer, urgency: CallMessageUrgency): void;
     sendHttpRequest(requestId: number, url: string, method: HttpMethod, headers: {
         [name: string]: string;
     }, body: Buffer | undefined): void;
