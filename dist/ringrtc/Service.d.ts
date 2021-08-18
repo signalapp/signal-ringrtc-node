@@ -27,7 +27,7 @@ export declare class RingRTCType {
     handleGroupCallRingUpdate: ((groupId: Buffer, ringId: bigint, sender: Buffer, update: RingUpdate) => void) | null;
     constructor();
     private pollEvery;
-    setSelfUuid(uuid: UserId): void;
+    setSelfUuid(uuid: Buffer): void;
     startOutgoingCall(remoteUserId: UserId, isVideoCall: boolean, localDeviceId: DeviceId, settings: CallSettings): Call;
     cancelGroupRing(groupId: GroupId, ringId: bigint, reason: RingCancelReason | null): void;
     onStartOutgoingCall(remoteUserId: UserId, callId: CallId): void;
@@ -353,7 +353,7 @@ export declare enum RingCancelReason {
     Busy = 1
 }
 export interface CallManager {
-    setSelfUuid(uuid: UserId): void;
+    setSelfUuid(uuid: Buffer): void;
     createOutgoingCall(remoteUserId: UserId, isVideoCall: boolean, localDeviceId: DeviceId): CallId;
     proceed(callId: CallId, iceServerUsername: string, iceServerPassword: string, iceServerUrls: Array<string>, hideIp: boolean, bandwidthMode: BandwidthMode): void;
     accept(callId: CallId): void;
