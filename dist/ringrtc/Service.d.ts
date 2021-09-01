@@ -10,6 +10,23 @@ export declare class PeekInfo {
     deviceCount: number;
     constructor();
 }
+declare enum NetworkAdapterType {
+    Unknown = 0,
+    Ethernet = 1,
+    Wifi = 2,
+    Cellular = 4,
+    Vpn = 8,
+    Loopback = 16,
+    Default = 32,
+    Cellular2G = 64,
+    Cellular3G = 128,
+    Cellular4G = 256,
+    Cellular5G = 512
+}
+export declare class NetworkRoute {
+    localAdapterType: NetworkAdapterType;
+    constructor();
+}
 export declare class RingRTCType {
     private readonly callManager;
     private _call;
@@ -37,6 +54,7 @@ export declare class RingRTCType {
     onCallEnded(remoteUserId: UserId, reason: CallEndedReason): void;
     onRemoteVideoEnabled(remoteUserId: UserId, enabled: boolean): void;
     onRemoteSharingScreen(remoteUserId: UserId, enabled: boolean): void;
+    onNetworkRouteChanged(remoteUserId: UserId, localNetworkAdapterType: NetworkAdapterType): void;
     renderVideoFrame(width: number, height: number, buffer: Buffer): void;
     onSendOffer(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean, offerType: OfferType, opaque: Buffer): void;
     onSendAnswer(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean, opaque: Buffer): void;
@@ -53,6 +71,7 @@ export declare class RingRTCType {
     requestGroupMembers(clientId: GroupCallClientId): void;
     handleConnectionStateChanged(clientId: GroupCallClientId, connectionState: ConnectionState): void;
     handleJoinStateChanged(clientId: GroupCallClientId, joinState: JoinState): void;
+    handleNetworkRouteChanged(clientId: GroupCallClientId, localNetworkAdapterType: NetworkAdapterType): void;
     handleRemoteDevicesChanged(clientId: GroupCallClientId, remoteDeviceStates: Array<RemoteDeviceState>): void;
     handlePeekChanged(clientId: GroupCallClientId, info: PeekInfo): void;
     handlePeekResponse(request_id: number, info: PeekInfo): void;
@@ -119,12 +138,14 @@ export declare class Call {
     private _outgoingVideoIsScreenShare;
     private _remoteVideoEnabled;
     remoteSharingScreen: boolean;
+    networkRoute: NetworkRoute;
     private _videoCapturer;
     private _videoRenderer;
     endedReason?: CallEndedReason;
     handleStateChanged?: () => void;
     handleRemoteVideoEnabled?: () => void;
     handleRemoteSharingScreen?: () => void;
+    handleNetworkRouteChanged?: () => void;
     renderVideoFrame?: (width: number, height: number, buffer: Buffer) => void;
     constructor(callManager: CallManager, remoteUserId: UserId, callId: CallId, isIncoming: boolean, isVideoCall: boolean, settings: CallSettings | null, state: CallState);
     get remoteUserId(): UserId;
@@ -207,6 +228,7 @@ export declare class LocalDeviceState {
     videoMuted: boolean;
     presenting: boolean;
     sharingScreen: boolean;
+    networkRoute: NetworkRoute;
     constructor();
 }
 export declare class RemoteDeviceState {
@@ -272,6 +294,7 @@ export declare class GroupCall {
     requestGroupMembers(): void;
     handleConnectionStateChanged(connectionState: ConnectionState): void;
     handleJoinStateChanged(joinState: JoinState): void;
+    handleNetworkRouteChanged(localNetworkAdapterType: NetworkAdapterType): void;
     handleRemoteDevicesChanged(remoteDeviceStates: Array<RemoteDeviceState>): void;
     handlePeekChanged(info: PeekInfo): void;
     handleEnded(reason: GroupCallEndReason): void;

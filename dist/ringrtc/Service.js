@@ -13,7 +13,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.CallLogLevel = exports.CallEndedReason = exports.CallState = exports.RingCancelReason = exports.BandwidthMode = exports.HangupType = exports.OpaqueMessage = exports.HangupMessage = exports.BusyMessage = exports.IceCandidateMessage = exports.AnswerMessage = exports.OfferType = exports.OfferMessage = exports.CallingMessage = exports.GroupCall = exports.VideoRequest = exports.GroupMemberInfo = exports.RemoteDeviceState = exports.LocalDeviceState = exports.HttpMethod = exports.RingUpdate = exports.CallMessageUrgency = exports.GroupCallEndReason = exports.JoinState = exports.ConnectionState = exports.Call = exports.RingRTCType = exports.PeekInfo = void 0;
+exports.CallLogLevel = exports.CallEndedReason = exports.CallState = exports.RingCancelReason = exports.BandwidthMode = exports.HangupType = exports.OpaqueMessage = exports.HangupMessage = exports.BusyMessage = exports.IceCandidateMessage = exports.AnswerMessage = exports.OfferType = exports.OfferMessage = exports.CallingMessage = exports.GroupCall = exports.VideoRequest = exports.GroupMemberInfo = exports.RemoteDeviceState = exports.LocalDeviceState = exports.HttpMethod = exports.RingUpdate = exports.CallMessageUrgency = exports.GroupCallEndReason = exports.JoinState = exports.ConnectionState = exports.Call = exports.RingRTCType = exports.NetworkRoute = exports.PeekInfo = void 0;
 /* tslint:disable max-classes-per-file */
 const os = require("os");
 const process = require("process");
@@ -111,6 +111,39 @@ class PeekInfo {
     }
 }
 exports.PeekInfo = PeekInfo;
+// In sync with WebRTC's PeerConnection.AdapterType.
+// Despite how it looks, this is not an option set.
+// A network adapter type can only be one of the listed values.
+// And there are a few oddities to note:
+// - Cellular means we don't know if it's 2G, 3G, 4G, 5G, ...
+//   If we know, it will be one of those corresponding enum values.
+//   This means to know if something is cellular or not, you must
+//   check all of those values.
+// - Default means we don't know the adapter type (like Unknown)
+//   but it's because we bound to the default IP address (0.0.0.0)
+//   so it's probably the default adapter (wifi if available, for example)
+//   This is unlikely to happen in practice.
+var NetworkAdapterType;
+(function (NetworkAdapterType) {
+    NetworkAdapterType[NetworkAdapterType["Unknown"] = 0] = "Unknown";
+    NetworkAdapterType[NetworkAdapterType["Ethernet"] = 1] = "Ethernet";
+    NetworkAdapterType[NetworkAdapterType["Wifi"] = 2] = "Wifi";
+    NetworkAdapterType[NetworkAdapterType["Cellular"] = 4] = "Cellular";
+    NetworkAdapterType[NetworkAdapterType["Vpn"] = 8] = "Vpn";
+    NetworkAdapterType[NetworkAdapterType["Loopback"] = 16] = "Loopback";
+    NetworkAdapterType[NetworkAdapterType["Default"] = 32] = "Default";
+    NetworkAdapterType[NetworkAdapterType["Cellular2G"] = 64] = "Cellular2G";
+    NetworkAdapterType[NetworkAdapterType["Cellular3G"] = 128] = "Cellular3G";
+    NetworkAdapterType[NetworkAdapterType["Cellular4G"] = 256] = "Cellular4G";
+    NetworkAdapterType[NetworkAdapterType["Cellular5G"] = 512] = "Cellular5G";
+})(NetworkAdapterType || (NetworkAdapterType = {}));
+// Information about the network route being used for sending audio/video/data
+class NetworkRoute {
+    constructor() {
+        this.localAdapterType = NetworkAdapterType.Unknown;
+    }
+}
+exports.NetworkRoute = NetworkRoute;
 class Requests {
     constructor() {
         this._resolveById = new Map();
@@ -274,6 +307,16 @@ class RingRTCType {
         call.remoteSharingScreen = enabled;
         if (call.handleRemoteSharingScreen) {
             call.handleRemoteSharingScreen();
+        }
+    }
+    onNetworkRouteChanged(remoteUserId, localNetworkAdapterType) {
+        const call = this._call;
+        if (!call || call.remoteUserId !== remoteUserId) {
+            return;
+        }
+        call.networkRoute.localAdapterType = localNetworkAdapterType;
+        if (call.handleNetworkRouteChanged) {
+            call.handleNetworkRouteChanged();
         }
     }
     renderVideoFrame(width, height, buffer) {
@@ -445,6 +488,17 @@ class RingRTCType {
                 return;
             }
             groupCall.handleJoinStateChanged(joinState);
+        });
+    }
+    // Called by Rust
+    handleNetworkRouteChanged(clientId, localNetworkAdapterType) {
+        silly_deadlock_protection(() => {
+            let groupCall = this._groupCallByClientId.get(clientId);
+            if (!groupCall) {
+                this.onLogMessage(CallLogLevel.Error, 'Service.ts', 0, 'handleNetworkRouteChanged(): GroupCall not found in map!');
+                return;
+            }
+            groupCall.handleNetworkRouteChanged(localNetworkAdapterType);
         });
     }
     // Called by Rust
@@ -719,6 +773,7 @@ class Call {
         this._outgoingVideoIsScreenShare = false;
         this._remoteVideoEnabled = false;
         this.remoteSharingScreen = false;
+        this.networkRoute = new NetworkRoute();
         this._videoCapturer = null;
         this._videoRenderer = null;
         this._callManager = callManager;
@@ -981,6 +1036,7 @@ class LocalDeviceState {
         this.videoMuted = true;
         this.presenting = false;
         this.sharingScreen = false;
+        this.networkRoute = new NetworkRoute();
     }
 }
 exports.LocalDeviceState = LocalDeviceState;
@@ -1115,6 +1171,11 @@ class GroupCall {
     // Called by Rust via RingRTC object
     handleJoinStateChanged(joinState) {
         this._localDeviceState.joinState = joinState;
+        this._observer.onLocalDeviceStateChanged(this);
+    }
+    // Called by Rust via RingRTC object
+    handleNetworkRouteChanged(localNetworkAdapterType) {
+        this._localDeviceState.networkRoute.localAdapterType = localNetworkAdapterType;
         this._observer.onLocalDeviceStateChanged(this);
     }
     // Called by Rust via RingRTC object
