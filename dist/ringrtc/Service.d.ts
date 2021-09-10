@@ -1,5 +1,8 @@
 /// <reference types="node" />
 import { GumVideoCaptureOptions } from './VideoSupport';
+declare class Config {
+    use_new_audio_device_module: boolean;
+}
 declare type GroupId = Buffer;
 declare type GroupCallUserId = Buffer;
 export declare class PeekInfo {
@@ -43,6 +46,7 @@ export declare class RingRTCType {
     handleSendCallMessageToGroup: ((groupId: Buffer, message: Buffer, urgency: CallMessageUrgency) => void) | null;
     handleGroupCallRingUpdate: ((groupId: Buffer, ringId: bigint, sender: Buffer, update: RingUpdate) => void) | null;
     constructor();
+    setConfig(config: Config): void;
     private pollEvery;
     setSelfUuid(uuid: Buffer): void;
     startOutgoingCall(remoteUserId: UserId, isVideoCall: boolean, localDeviceId: DeviceId, settings: CallSettings): Call;
@@ -242,6 +246,7 @@ export declare class RemoteDeviceState {
     videoAspectRatio: number | undefined;
     addedTime: string | undefined;
     speakerTime: string | undefined;
+    forwardingVideo: boolean | undefined;
     constructor(demuxId: number, userId: Buffer, mediaKeysReceived: boolean);
 }
 export declare class GroupMemberInfo {
@@ -376,6 +381,7 @@ export declare enum RingCancelReason {
     Busy = 1
 }
 export interface CallManager {
+    setConfig(config: Config): void;
     setSelfUuid(uuid: Buffer): void;
     createOutgoingCall(remoteUserId: UserId, isVideoCall: boolean, localDeviceId: DeviceId): CallId;
     proceed(callId: CallId, iceServerUsername: string, iceServerPassword: string, iceServerUrls: Array<string>, hideIp: boolean, bandwidthMode: BandwidthMode): void;

@@ -23,12 +23,25 @@ const Native = require('../../build/' +
     '/libringrtc-' +
     process.arch +
     '.node');
+class Config {
+    constructor() {
+        this.use_new_audio_device_module = false;
+    }
+}
 // tslint:disable-next-line no-unnecessary-class
 class NativeCallManager {
     constructor() {
-        const callEndpoint = Native.createCallEndpoint();
+        this.createCallEndpoint(true, new Config());
+    }
+    ;
+    setConfig(config) {
+        this.createCallEndpoint(false, config);
+    }
+    createCallEndpoint(first_time, config) {
+        const callEndpoint = Native.createCallEndpoint(first_time, config.use_new_audio_device_module);
         Object.defineProperty(this, Native.callEndpointPropertyKey, {
             value: callEndpoint,
+            configurable: true, // allows it to be changed
         });
     }
 }
@@ -183,6 +196,9 @@ class RingRTCType {
         this._peekRequests = new Requests();
         this.pollEvery(50);
     }
+    setConfig(config) {
+        this.callManager.setConfig(config);
+    }
     pollEvery(intervalMs) {
         this.callManager.poll(this);
         setTimeout(() => {
@@ -226,7 +242,15 @@ class RingRTCType {
         // after the outgoing call is ended. In that case, ignore it once.
         if (this._call && this._call.endedReason === CallEndedReason.Glare) {
             this._call.endedReason = undefined;
-            this.ignore(callId);
+            // EVIL HACK: We are the "loser" of a glare collision and have ended the outgoing call
+            // and are now receiving the incoming call from the remote side (the "winner").
+            // However, the Desktop client has a bug where it re-orders the events so that
+            // instead of seeing ("outgoing call ended", "incoming call"), it sees
+            // ("incoming call", "call ended") and it gets messed up.
+            // The solution?  Delay processing the incoming call.
+            setTimeout(() => {
+                this.onStartIncomingCall(remoteUserId, callId, isVideoCall);
+            }, 500);
             return;
         }
         const isIncoming = true;
@@ -265,11 +289,17 @@ class RingRTCType {
     // Called by Rust
     onCallEnded(remoteUserId, reason) {
         const call = this._call;
-        // Temporary: Force hangup in all glare scenarios until handled gracefully.
-        if (call &&
-            (reason === CallEndedReason.ReceivedOfferWithGlare ||
-                reason === CallEndedReason.Glare)) {
-            call.hangup();
+        if (call && reason == CallEndedReason.ReceivedOfferWithGlare) {
+            // The current call is the outgoing call.
+            // The ended call is the incoming call.
+            // We're the "winner", so ignore the incoming call and keep going with the outgoing call.
+            return;
+        }
+        if (call && reason === CallEndedReason.Glare) {
+            // The current call is the outgoing call.
+            // The ended call is the outgoing call.
+            // We're the "loser", so end the outgoing/current call and wait for a new incoming call.
+            // (proceeded down to the code below)
         }
         // If there is no call or the remoteUserId doesn't match that of
         // the current call, or if one of the "receive offer while alread

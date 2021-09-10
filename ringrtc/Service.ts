@@ -17,12 +17,25 @@ const Native = require('../../build/' +
   process.arch +
   '.node');
 
+class Config {
+  use_new_audio_device_module: boolean = false;
+}
+
 // tslint:disable-next-line no-unnecessary-class
 class NativeCallManager {
   constructor() {
-    const callEndpoint = Native.createCallEndpoint();
+    this.createCallEndpoint(true, new Config());
+  };
+
+  setConfig(config: Config) {
+    this.createCallEndpoint(false, config);
+  }
+
+  private createCallEndpoint(first_time: boolean, config: Config) {
+    const callEndpoint = Native.createCallEndpoint(first_time, config.use_new_audio_device_module);
     Object.defineProperty(this, Native.callEndpointPropertyKey, {
       value: callEndpoint,
+      configurable: true,  // allows it to be changed
     });
   }
 }
@@ -237,6 +250,10 @@ export class RingRTCType {
     this.pollEvery(50);
   }
 
+  setConfig(config: Config) {
+    this.callManager.setConfig(config);
+  }
+
   private pollEvery(intervalMs: number): void {
     this.callManager.poll(this);
     setTimeout(() => {
@@ -309,7 +326,15 @@ export class RingRTCType {
     // after the outgoing call is ended. In that case, ignore it once.
     if (this._call && this._call.endedReason === CallEndedReason.Glare) {
       this._call.endedReason = undefined;
-      this.ignore(callId);
+      // EVIL HACK: We are the "loser" of a glare collision and have ended the outgoing call
+      // and are now receiving the incoming call from the remote side (the "winner").
+      // However, the Desktop client has a bug where it re-orders the events so that
+      // instead of seeing ("outgoing call ended", "incoming call"), it sees
+      // ("incoming call", "call ended") and it gets messed up.
+      // The solution?  Delay processing the incoming call.
+      setTimeout(() => {
+        this.onStartIncomingCall(remoteUserId, callId, isVideoCall);
+      }, 500);
       return;
     }
 
@@ -368,14 +393,18 @@ export class RingRTCType {
   // Called by Rust
   onCallEnded(remoteUserId: UserId, reason: CallEndedReason) {
     const call = this._call;
+    if (call && reason == CallEndedReason.ReceivedOfferWithGlare) {
+      // The current call is the outgoing call.
+      // The ended call is the incoming call.
+      // We're the "winner", so ignore the incoming call and keep going with the outgoing call.
+      return;
+    }
 
-    // Temporary: Force hangup in all glare scenarios until handled gracefully.
-    if (
-      call &&
-      (reason === CallEndedReason.ReceivedOfferWithGlare ||
-        reason === CallEndedReason.Glare)
-    ) {
-      call.hangup();
+    if (call && reason === CallEndedReason.Glare) {
+      // The current call is the outgoing call.
+      // The ended call is the outgoing call.
+      // We're the "loser", so end the outgoing/current call and wait for a new incoming call.
+      // (proceeded down to the code below)
     }
 
     // If there is no call or the remoteUserId doesn't match that of
@@ -1610,6 +1639,7 @@ export class RemoteDeviceState {
   videoAspectRatio: number | undefined; // Float
   addedTime: string | undefined; // unix millis (to be converted to a numeric type)
   speakerTime: string | undefined; // unix millis; 0 if they've never spoken (to be converted to a numeric type)
+  forwardingVideo: boolean | undefined;
 
   constructor(demuxId: number, userId: Buffer, mediaKeysReceived: boolean) {
     this.demuxId = demuxId;
@@ -1999,6 +2029,7 @@ export enum RingCancelReason {
 }
 
 export interface CallManager {
+  setConfig(config: Config): void;
   setSelfUuid(uuid: Buffer): void;
   createOutgoingCall(
     remoteUserId: UserId,
