@@ -27,7 +27,7 @@
     "@types/uuid": "^8.3.0",
     "chai": "4.3.4",
     "chai-as-promised": "^7.1.1",
-    "electron": "13.1.6",
+    "electron": "9.4.0",
     "electron-mocha": "10.1.0",
     "eslint": "7.7.0",
     "eslint-config-airbnb-typescript-prettier": "4.2.0",
