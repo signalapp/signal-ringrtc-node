@@ -33,7 +33,6 @@ class NativeCallManager {
     constructor() {
         this.createCallEndpoint(true, new Config());
     }
-    ;
     setConfig(config) {
         this.createCallEndpoint(false, config);
     }
@@ -287,7 +286,7 @@ class RingRTCType {
         call.state = state;
     }
     // Called by Rust
-    onCallEnded(remoteUserId, reason) {
+    onCallEnded(remoteUserId, reason, ageSec) {
         const call = this._call;
         if (call && reason == CallEndedReason.ReceivedOfferWithGlare) {
             // The current call is the outgoing call.
@@ -302,7 +301,7 @@ class RingRTCType {
             // (proceeded down to the code below)
         }
         // If there is no call or the remoteUserId doesn't match that of
-        // the current call, or if one of the "receive offer while alread
+        // the current call, or if one of the "receive offer while already
         // in a call" reasons are provided, don't end the current call,
         // just update the call history.
         if (!call ||
@@ -310,7 +309,7 @@ class RingRTCType {
             reason === CallEndedReason.ReceivedOfferWhileActive ||
             reason === CallEndedReason.ReceivedOfferExpired) {
             if (this.handleAutoEndedIncomingCallRequest) {
-                this.handleAutoEndedIncomingCallRequest(remoteUserId, reason);
+                this.handleAutoEndedIncomingCallRequest(remoteUserId, reason, ageSec);
             }
             return;
         }
@@ -1205,7 +1204,8 @@ class GroupCall {
     }
     // Called by Rust via RingRTC object
     handleNetworkRouteChanged(localNetworkAdapterType) {
-        this._localDeviceState.networkRoute.localAdapterType = localNetworkAdapterType;
+        this._localDeviceState.networkRoute.localAdapterType =
+            localNetworkAdapterType;
         this._observer.onLocalDeviceStateChanged(this);
     }
     // Called by Rust via RingRTC object

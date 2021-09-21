@@ -37,7 +37,7 @@ export declare class RingRTCType {
     private _peekRequests;
     handleOutgoingSignaling: ((remoteUserId: UserId, message: CallingMessage) => Promise<boolean>) | null;
     handleIncomingCall: ((call: Call) => Promise<CallSettings | null>) | null;
-    handleAutoEndedIncomingCallRequest: ((remoteUserId: UserId, reason: CallEndedReason) => void) | null;
+    handleAutoEndedIncomingCallRequest: ((remoteUserId: UserId, reason: CallEndedReason, ageSec: number) => void) | null;
     handleLogMessage: ((level: CallLogLevel, fileName: string, line: number, message: string) => void) | null;
     handleSendHttpRequest: ((requestId: number, url: string, method: HttpMethod, headers: {
         [name: string]: string;
@@ -55,7 +55,7 @@ export declare class RingRTCType {
     onStartIncomingCall(remoteUserId: UserId, callId: CallId, isVideoCall: boolean): void;
     private proceed;
     onCallState(remoteUserId: UserId, state: CallState): void;
-    onCallEnded(remoteUserId: UserId, reason: CallEndedReason): void;
+    onCallEnded(remoteUserId: UserId, reason: CallEndedReason, ageSec: number): void;
     onRemoteVideoEnabled(remoteUserId: UserId, enabled: boolean): void;
     onRemoteSharingScreen(remoteUserId: UserId, enabled: boolean): void;
     onNetworkRouteChanged(remoteUserId: UserId, localNetworkAdapterType: NetworkAdapterType): void;
@@ -433,7 +433,7 @@ export interface CallManagerCallbacks {
     onStartOutgoingCall(remoteUserId: UserId, callId: CallId): void;
     onStartIncomingCall(remoteUserId: UserId, callId: CallId, isVideoCall: boolean): void;
     onCallState(remoteUserId: UserId, state: CallState): void;
-    onCallEnded(remoteUserId: UserId, endedReason: CallEndedReason): void;
+    onCallEnded(remoteUserId: UserId, endedReason: CallEndedReason, ageSec: number): void;
     onRemoteVideoEnabled(remoteUserId: UserId, enabled: boolean): void;
     onRemoteSharingScreen(remoteUserId: UserId, enabled: boolean): void;
     onSendOffer(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean, mediaType: number, opaque: Buffer): void;

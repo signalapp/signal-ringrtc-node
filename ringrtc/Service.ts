@@ -25,17 +25,20 @@ class Config {
 class NativeCallManager {
   constructor() {
     this.createCallEndpoint(true, new Config());
-  };
+  }
 
   setConfig(config: Config) {
     this.createCallEndpoint(false, config);
   }
 
   private createCallEndpoint(first_time: boolean, config: Config) {
-    const callEndpoint = Native.createCallEndpoint(first_time, config.use_new_audio_device_module);
+    const callEndpoint = Native.createCallEndpoint(
+      first_time,
+      config.use_new_audio_device_module
+    );
     Object.defineProperty(this, Native.callEndpointPropertyKey, {
       value: callEndpoint,
-      configurable: true,  // allows it to be changed
+      configurable: true, // allows it to be changed
     });
   }
 }
@@ -200,7 +203,7 @@ export class RingRTCType {
   handleIncomingCall: ((call: Call) => Promise<CallSettings | null>) | null =
     null;
   handleAutoEndedIncomingCallRequest:
-    | ((remoteUserId: UserId, reason: CallEndedReason) => void)
+    | ((remoteUserId: UserId, reason: CallEndedReason, ageSec: number) => void)
     | null = null;
   handleLogMessage:
     | ((
@@ -227,11 +230,7 @@ export class RingRTCType {
       ) => void)
     | null = null;
   handleSendCallMessageToGroup:
-    | ((
-        groupId: Buffer,
-        message: Buffer,
-        urgency: CallMessageUrgency
-      ) => void)
+    | ((groupId: Buffer, message: Buffer, urgency: CallMessageUrgency) => void)
     | null = null;
   handleGroupCallRingUpdate:
     | ((
@@ -262,10 +261,8 @@ export class RingRTCType {
   }
 
   // Called by UX
-  setSelfUuid(
-    uuid: Buffer
-  ): void {
-    this.callManager.setSelfUuid(uuid)
+  setSelfUuid(uuid: Buffer): void {
+    this.callManager.setSelfUuid(uuid);
   }
 
   // Called by UX
@@ -298,7 +295,11 @@ export class RingRTCType {
   }
 
   // Called by UX
-  cancelGroupRing(groupId: GroupId, ringId: bigint, reason: RingCancelReason | null): void {
+  cancelGroupRing(
+    groupId: GroupId,
+    ringId: bigint,
+    reason: RingCancelReason | null
+  ): void {
     silly_deadlock_protection(() => {
       this.callManager.cancelGroupRing(groupId, ringId.toString(), reason);
     });
@@ -391,7 +392,7 @@ export class RingRTCType {
   }
 
   // Called by Rust
-  onCallEnded(remoteUserId: UserId, reason: CallEndedReason) {
+  onCallEnded(remoteUserId: UserId, reason: CallEndedReason, ageSec: number) {
     const call = this._call;
     if (call && reason == CallEndedReason.ReceivedOfferWithGlare) {
       // The current call is the outgoing call.
@@ -408,7 +409,7 @@ export class RingRTCType {
     }
 
     // If there is no call or the remoteUserId doesn't match that of
-    // the current call, or if one of the "receive offer while alread
+    // the current call, or if one of the "receive offer while already
     // in a call" reasons are provided, don't end the current call,
     // just update the call history.
     if (
@@ -418,7 +419,7 @@ export class RingRTCType {
       reason === CallEndedReason.ReceivedOfferExpired
     ) {
       if (this.handleAutoEndedIncomingCallRequest) {
-        this.handleAutoEndedIncomingCallRequest(remoteUserId, reason);
+        this.handleAutoEndedIncomingCallRequest(remoteUserId, reason, ageSec);
       }
       return;
     }
@@ -453,7 +454,10 @@ export class RingRTCType {
     }
   }
 
-  onNetworkRouteChanged(remoteUserId: UserId, localNetworkAdapterType: NetworkAdapterType): void {
+  onNetworkRouteChanged(
+    remoteUserId: UserId,
+    localNetworkAdapterType: NetworkAdapterType
+  ): void {
     const call = this._call;
     if (!call || call.remoteUserId !== remoteUserId) {
       return;
@@ -786,7 +790,7 @@ export class RingRTCType {
   // Called by Rust
   handleNetworkRouteChanged(
     clientId: GroupCallClientId,
-    localNetworkAdapterType: NetworkAdapterType,
+    localNetworkAdapterType: NetworkAdapterType
   ): void {
     silly_deadlock_protection(() => {
       let groupCall = this._groupCallByClientId.get(clientId);
@@ -1105,11 +1109,7 @@ export class RingRTCType {
     urgency: CallMessageUrgency
   ): void {
     if (this.handleSendCallMessage) {
-      this.handleSendCallMessage(
-        recipientUuid,
-        message,
-        urgency
-      );
+      this.handleSendCallMessage(recipientUuid, message, urgency);
     } else {
       console.log('RingRTC.handleSendCallMessage is not set!');
     }
@@ -1122,11 +1122,7 @@ export class RingRTCType {
     urgency: CallMessageUrgency
   ): void {
     if (this.handleSendCallMessageToGroup) {
-      this.handleSendCallMessageToGroup(
-        groupId,
-        message,
-        urgency
-      );
+      this.handleSendCallMessageToGroup(groupId, message, urgency);
     } else {
       console.log('RingRTC.handleSendCallMessageToGroup is not set!');
     }
@@ -1840,7 +1836,8 @@ export class GroupCall {
 
   // Called by Rust via RingRTC object
   handleNetworkRouteChanged(localNetworkAdapterType: NetworkAdapterType): void {
-    this._localDeviceState.networkRoute.localAdapterType = localNetworkAdapterType;
+    this._localDeviceState.networkRoute.localAdapterType =
+      localNetworkAdapterType;
 
     this._observer.onLocalDeviceStateChanged(this);
   }
@@ -2047,7 +2044,11 @@ export interface CallManager {
   accept(callId: CallId): void;
   ignore(callId: CallId): void;
   hangup(): void;
-  cancelGroupRing(groupId: GroupId, ringId: string, reason: RingCancelReason | null): void;
+  cancelGroupRing(
+    groupId: GroupId,
+    ringId: string,
+    reason: RingCancelReason | null
+  ): void;
   signalingMessageSent(callId: CallId): void;
   signalingMessageSendFailed(callId: CallId): void;
   setOutgoingAudioEnabled(enabled: boolean): void;
@@ -2165,7 +2166,11 @@ export interface CallManagerCallbacks {
     isVideoCall: boolean
   ): void;
   onCallState(remoteUserId: UserId, state: CallState): void;
-  onCallEnded(remoteUserId: UserId, endedReason: CallEndedReason): void;
+  onCallEnded(
+    remoteUserId: UserId,
+    endedReason: CallEndedReason,
+    ageSec: number
+  ): void;
   onRemoteVideoEnabled(remoteUserId: UserId, enabled: boolean): void;
   onRemoteSharingScreen(remoteUserId: UserId, enabled: boolean): void;
   onSendOffer(
