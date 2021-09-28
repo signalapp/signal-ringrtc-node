@@ -40,7 +40,7 @@ export declare class GumVideoCapturer {
     private stopCapturing;
     private startSending;
     private stopSending;
-    private setLocalPreviewSourceObject;
+    private updateLocalPreviewSourceObject;
     private captureAndSendOneVideoFrame;
     private drawFakeVideo;
 }

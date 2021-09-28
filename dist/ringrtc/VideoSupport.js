@@ -30,7 +30,13 @@ class GumVideoCapturer {
         return this.captureOptions != undefined;
     }
     setLocalPreview(localPreview) {
+        var _a;
+        const oldLocalPreview = (_a = this.localPreview) === null || _a === void 0 ? void 0 : _a.current;
+        if (oldLocalPreview) {
+            oldLocalPreview.srcObject = null;
+        }
         this.localPreview = localPreview;
+        this.updateLocalPreviewSourceObject();
     }
     enableCapture() {
         // tslint:disable no-floating-promises
@@ -120,10 +126,8 @@ class GumVideoCapturer {
                     }
                     return;
                 }
-                if (this.localPreview && !!this.localPreview.current && !!mediaStream) {
-                    this.setLocalPreviewSourceObject(mediaStream);
-                }
                 this.mediaStream = mediaStream;
+                this.updateLocalPreviewSourceObject();
             }
             catch (e) {
                 // It's possible video was disabled, switched to screenshare, or
@@ -148,9 +152,7 @@ class GumVideoCapturer {
             }
             this.mediaStream = undefined;
         }
-        if (this.localPreview && !!this.localPreview.current) {
-            this.localPreview.current.srcObject = null;
-        }
+        this.updateLocalPreviewSourceObject();
     }
     startSending(sender) {
         if (this.sender === sender) {
@@ -175,7 +177,7 @@ class GumVideoCapturer {
             clearInterval(this.intervalId);
         }
     }
-    setLocalPreviewSourceObject(mediaStream) {
+    updateLocalPreviewSourceObject() {
         if (!this.localPreview) {
             return;
         }
@@ -183,13 +185,21 @@ class GumVideoCapturer {
         if (!localPreview) {
             return;
         }
-        localPreview.srcObject = mediaStream;
-        // I don't know why this is necessary
-        if (localPreview.width === 0) {
-            localPreview.width = this.captureOptions.maxWidth;
+        const { mediaStream = null } = this;
+        if (localPreview.srcObject === mediaStream) {
+            return;
         }
-        if (localPreview.height === 0) {
-            localPreview.height = this.captureOptions.maxHeight;
+        if (mediaStream) {
+            localPreview.srcObject = mediaStream;
+            if (localPreview.width === 0) {
+                localPreview.width = this.captureOptions.maxWidth;
+            }
+            if (localPreview.height === 0) {
+                localPreview.height = this.captureOptions.maxHeight;
+            }
+        }
+        else {
+            localPreview.srcObject = null;
         }
     }
     captureAndSendOneVideoFrame() {
@@ -208,9 +218,7 @@ class GumVideoCapturer {
             return;
         }
         if (this.localPreview && this.localPreview.current) {
-            if (!this.localPreview.current.srcObject && !!this.mediaStream) {
-                this.setLocalPreviewSourceObject(this.mediaStream);
-            }
+            this.updateLocalPreviewSourceObject();
             const width = this.localPreview.current.videoWidth;
             const height = this.localPreview.current.videoHeight;
             if (width === 0 || height === 0) {
