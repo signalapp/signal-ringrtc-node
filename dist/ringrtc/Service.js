@@ -30,14 +30,15 @@ class Config {
 }
 // tslint:disable-next-line no-unnecessary-class
 class NativeCallManager {
-    constructor() {
-        this.createCallEndpoint(true, new Config());
+    constructor(observer) {
+        this.observer = observer;
+        this.createCallEndpoint(new Config());
     }
     setConfig(config) {
-        this.createCallEndpoint(false, config);
+        this.createCallEndpoint(config);
     }
-    createCallEndpoint(first_time, config) {
-        const callEndpoint = Native.createCallEndpoint(first_time, config.use_new_audio_device_module);
+    createCallEndpoint(config) {
+        const callEndpoint = Native.createCallEndpoint(this, config.use_new_audio_device_module);
         Object.defineProperty(this, Native.callEndpointPropertyKey, {
             value: callEndpoint,
             configurable: true, // allows it to be changed
@@ -115,7 +116,7 @@ NativeCallManager.prototype.setAudioInput = Native.cm_setAudioInput;
 NativeCallManager.prototype.getAudioOutputs =
     Native.cm_getAudioOutputs;
 NativeCallManager.prototype.setAudioOutput = Native.cm_setAudioOutput;
-NativeCallManager.prototype.poll = Native.cm_poll;
+NativeCallManager.prototype.processEvents = Native.cm_processEvents;
 class PeekInfo {
     constructor() {
         this.joinedMembers = [];
@@ -189,20 +190,13 @@ class RingRTCType {
         this.handleSendCallMessage = null;
         this.handleSendCallMessageToGroup = null;
         this.handleGroupCallRingUpdate = null;
-        this.callManager = new NativeCallManager();
+        this.callManager = new NativeCallManager(this);
         this._call = null;
         this._groupCallByClientId = new Map();
         this._peekRequests = new Requests();
-        this.pollEvery(50);
     }
     setConfig(config) {
         this.callManager.setConfig(config);
-    }
-    pollEvery(intervalMs) {
-        this.callManager.poll(this);
-        setTimeout(() => {
-            this.pollEvery(intervalMs);
-        }, intervalMs);
     }
     // Called by UX
     setSelfUuid(uuid) {

@@ -47,7 +47,6 @@ export declare class RingRTCType {
     handleGroupCallRingUpdate: ((groupId: Buffer, ringId: bigint, sender: Buffer, update: RingUpdate) => void) | null;
     constructor();
     setConfig(config: Config): void;
-    private pollEvery;
     setSelfUuid(uuid: Buffer): void;
     startOutgoingCall(remoteUserId: UserId, isVideoCall: boolean, localDeviceId: DeviceId, settings: CallSettings): Call;
     cancelGroupRing(groupId: GroupId, ringId: bigint, reason: RingCancelReason | null): void;
@@ -427,7 +426,6 @@ export interface CallManager {
     setAudioInput(index: number): void;
     getAudioOutputs(): AudioDevice[];
     setAudioOutput(index: number): void;
-    poll(callbacks: CallManagerCallbacks): void;
 }
 export interface CallManagerCallbacks {
     onStartOutgoingCall(remoteUserId: UserId, callId: CallId): void;
