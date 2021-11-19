@@ -382,15 +382,6 @@ class RingRTCType {
         this.sendSignaling(remoteUserId, remoteDeviceId, callId, broadcast, message);
     }
     // Called by Rust
-    onSendLegacyHangup(remoteUserId, remoteDeviceId, callId, broadcast, hangupType, deviceId) {
-        const message = new CallingMessage();
-        message.legacyHangup = new HangupMessage();
-        message.legacyHangup.callId = callId;
-        message.legacyHangup.type = hangupType;
-        message.legacyHangup.deviceId = deviceId || 0;
-        this.sendSignaling(remoteUserId, remoteDeviceId, callId, broadcast, message);
-    }
-    // Called by Rust
     onSendHangup(remoteUserId, remoteDeviceId, callId, broadcast, hangupType, deviceId) {
         const message = new CallingMessage();
         message.hangup = new HangupMessage();
@@ -590,7 +581,6 @@ class RingRTCType {
     // Called by MessageReceiver
     // tslint:disable-next-line cyclomatic-complexity
     handleCallingMessage(remoteUserId, remoteUuid, remoteDeviceId, localDeviceId, messageAgeSec, message, senderIdentityKey, receiverIdentityKey) {
-        const remoteSupportsMultiRing = message.supportsMultiRing || false;
         if (message.destinationDeviceId &&
             message.destinationDeviceId !== localDeviceId) {
             // Drop the message as it isn't for this device, handleIgnoredCall() is not needed.
@@ -606,7 +596,7 @@ class RingRTCType {
                 return;
             }
             const offerType = message.offer.type || OfferType.AudioCall;
-            this.callManager.receivedOffer(remoteUserId, remoteDeviceId, localDeviceId, messageAgeSec, callId, offerType, remoteSupportsMultiRing, opaque, senderIdentityKey, receiverIdentityKey);
+            this.callManager.receivedOffer(remoteUserId, remoteDeviceId, localDeviceId, messageAgeSec, callId, offerType, opaque, senderIdentityKey, receiverIdentityKey);
         }
         if (message.answer && message.answer.callId) {
             const callId = message.answer.callId;
@@ -617,7 +607,7 @@ class RingRTCType {
                 this.onLogMessage(CallLogLevel.Error, 'Service.ts', 0, 'handleCallingMessage(): opaque not received for answer, remote should update');
                 return;
             }
-            this.callManager.receivedAnswer(remoteUserId, remoteDeviceId, callId, remoteSupportsMultiRing, opaque, senderIdentityKey, receiverIdentityKey);
+            this.callManager.receivedAnswer(remoteUserId, remoteDeviceId, callId, opaque, senderIdentityKey, receiverIdentityKey);
         }
         if (message.iceCandidates && message.iceCandidates.length > 0) {
             // We assume they all have the same .callId
@@ -1343,7 +1333,6 @@ var CallEndedReason;
     CallEndedReason["AcceptedOnAnotherDevice"] = "AcceptedOnAnotherDevice";
     CallEndedReason["DeclinedOnAnotherDevice"] = "DeclinedOnAnotherDevice";
     CallEndedReason["BusyOnAnotherDevice"] = "BusyOnAnotherDevice";
-    CallEndedReason["CallerIsNotMultiring"] = "CallerIsNotMultiring";
 })(CallEndedReason = exports.CallEndedReason || (exports.CallEndedReason = {}));
 var CallLogLevel;
 (function (CallLogLevel) {
