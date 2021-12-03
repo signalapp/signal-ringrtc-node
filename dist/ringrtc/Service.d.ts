@@ -67,7 +67,7 @@ export declare class RingRTCType {
     private sendSignaling;
     receivedHttpResponse(requestId: number, status: number, body: Buffer): void;
     httpRequestFailed(requestId: number, debugInfo: string | undefined): void;
-    getGroupCall(groupId: Buffer, sfuUrl: string, observer: GroupCallObserver): GroupCall | undefined;
+    getGroupCall(groupId: Buffer, sfuUrl: string, hkdfExtraInfo: Buffer, observer: GroupCallObserver): GroupCall | undefined;
     peekGroupCall(sfu_url: string, membership_proof: Buffer, group_members: Array<GroupMemberInfo>): Promise<PeekInfo>;
     requestMembershipProof(clientId: GroupCallClientId): void;
     requestGroupMembers(clientId: GroupCallClientId): void;
@@ -193,7 +193,7 @@ export declare enum GroupCallEndReason {
     CallManagerIsBusy = 2,
     SfuClientFailedToJoin = 3,
     FailedToCreatePeerConnectionFactory = 4,
-    FailedToGenerateCertificate = 5,
+    FailedToNegotiateSrtpKeys = 5,
     FailedToCreatePeerConnection = 6,
     FailedToStartPeerConnection = 7,
     FailedToUpdatePeerConnection = 8,
@@ -274,7 +274,7 @@ export declare class GroupCall {
     private _localDeviceState;
     private _remoteDeviceStates;
     private _peekInfo;
-    constructor(callManager: CallManager, groupId: Buffer, sfuUrl: string, observer: GroupCallObserver);
+    constructor(callManager: CallManager, groupId: Buffer, sfuUrl: string, hkdfExtraInfo: Buffer, observer: GroupCallObserver);
     connect(): void;
     join(): void;
     leave(): void;
@@ -402,7 +402,7 @@ export interface CallManager {
     receivedCallMessage(remoteUserId: Buffer, remoteDeviceId: DeviceId, localDeviceId: DeviceId, data: Buffer, messageAgeSec: number): void;
     receivedHttpResponse(requestId: number, status: number, body: Buffer): void;
     httpRequestFailed(requestId: number, debugInfo: string | undefined): void;
-    createGroupCallClient(groupId: Buffer, sfuUrl: string): GroupCallClientId;
+    createGroupCallClient(groupId: Buffer, sfuUrl: string, hkdfExtraInfo: Buffer): GroupCallClientId;
     deleteGroupCallClient(clientId: GroupCallClientId): void;
     connect(clientId: GroupCallClientId): void;
     join(clientId: GroupCallClientId): void;

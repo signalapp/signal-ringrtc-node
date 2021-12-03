@@ -441,8 +441,8 @@ class RingRTCType {
     }
     // Group Calls
     // Called by UX
-    getGroupCall(groupId, sfuUrl, observer) {
-        const groupCall = new GroupCall(this.callManager, groupId, sfuUrl, observer);
+    getGroupCall(groupId, sfuUrl, hkdfExtraInfo, observer) {
+        const groupCall = new GroupCall(this.callManager, groupId, sfuUrl, hkdfExtraInfo, observer);
         this._groupCallByClientId.set(groupCall.clientId, groupCall);
         return groupCall;
     }
@@ -998,7 +998,7 @@ var GroupCallEndReason;
     GroupCallEndReason[GroupCallEndReason["CallManagerIsBusy"] = 2] = "CallManagerIsBusy";
     GroupCallEndReason[GroupCallEndReason["SfuClientFailedToJoin"] = 3] = "SfuClientFailedToJoin";
     GroupCallEndReason[GroupCallEndReason["FailedToCreatePeerConnectionFactory"] = 4] = "FailedToCreatePeerConnectionFactory";
-    GroupCallEndReason[GroupCallEndReason["FailedToGenerateCertificate"] = 5] = "FailedToGenerateCertificate";
+    GroupCallEndReason[GroupCallEndReason["FailedToNegotiateSrtpKeys"] = 5] = "FailedToNegotiateSrtpKeys";
     GroupCallEndReason[GroupCallEndReason["FailedToCreatePeerConnection"] = 6] = "FailedToCreatePeerConnection";
     GroupCallEndReason[GroupCallEndReason["FailedToStartPeerConnection"] = 7] = "FailedToStartPeerConnection";
     GroupCallEndReason[GroupCallEndReason["FailedToUpdatePeerConnection"] = 8] = "FailedToUpdatePeerConnection";
@@ -1082,11 +1082,11 @@ class VideoRequest {
 exports.VideoRequest = VideoRequest;
 class GroupCall {
     // Called by UI via RingRTC object
-    constructor(callManager, groupId, sfuUrl, observer) {
+    constructor(callManager, groupId, sfuUrl, hkdfExtraInfo, observer) {
         this._callManager = callManager;
         this._observer = observer;
         this._localDeviceState = new LocalDeviceState();
-        this._clientId = this._callManager.createGroupCallClient(groupId, sfuUrl);
+        this._clientId = this._callManager.createGroupCallClient(groupId, sfuUrl, hkdfExtraInfo);
     }
     get clientId() {
         return this._clientId;
