@@ -51,6 +51,7 @@ export declare const MAX_VIDEO_CAPTURE_BUFFER_SIZE: number;
 export declare class CanvasVideoRenderer {
     private canvas?;
     private buffer;
+    private imageData?;
     private source?;
     private rafId?;
     constructor();

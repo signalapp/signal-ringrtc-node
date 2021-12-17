@@ -333,6 +333,7 @@ class CanvasVideoRenderer {
         context.fillRect(0, 0, canvas.width, canvas.height);
     }
     renderVideoFrame() {
+        var _a, _b;
         if (!this.source || !this.canvas) {
             return;
         }
@@ -380,9 +381,11 @@ class CanvasVideoRenderer {
             context.fillStyle = 'black';
             context.fillRect(0, 0, canvas.width, canvas.height);
         }
-        // Share the same buffer as this.buffer.
-        const clampedArrayBuffer = new Uint8ClampedArray(this.buffer.buffer, this.buffer.byteOffset, width * height * 4);
-        context.putImageData(new ImageData(clampedArrayBuffer, width, height), dx, dy);
+        if (((_a = this.imageData) === null || _a === void 0 ? void 0 : _a.width) !== width || ((_b = this.imageData) === null || _b === void 0 ? void 0 : _b.height) !== height) {
+            this.imageData = new ImageData(width, height);
+        }
+        this.imageData.data.set(this.buffer.subarray(0, width * height * 4));
+        context.putImageData(this.imageData, dx, dy);
     }
 }
 exports.CanvasVideoRenderer = CanvasVideoRenderer;

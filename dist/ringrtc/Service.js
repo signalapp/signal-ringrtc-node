@@ -462,7 +462,7 @@ class RingRTCType {
             let groupCall = this._groupCallByClientId.get(clientId);
             if (!groupCall) {
                 let error = new Error();
-                this.onLogMessage(CallLogLevel.Error, 'Service.ts', 0, 'requestMembershipProof(): GroupCall not found in map!');
+                this.logError('requestMembershipProof(): GroupCall not found in map!');
                 return;
             }
             groupCall.requestMembershipProof();
@@ -474,7 +474,7 @@ class RingRTCType {
             let groupCall = this._groupCallByClientId.get(clientId);
             if (!groupCall) {
                 let error = new Error();
-                this.onLogMessage(CallLogLevel.Error, 'Service.ts', 0, 'requestGroupMembers(): GroupCall not found in map!');
+                this.logError('requestGroupMembers(): GroupCall not found in map!');
                 return;
             }
             groupCall.requestGroupMembers();
@@ -486,7 +486,7 @@ class RingRTCType {
             let groupCall = this._groupCallByClientId.get(clientId);
             if (!groupCall) {
                 let error = new Error();
-                this.onLogMessage(CallLogLevel.Error, 'Service.ts', 0, 'handleConnectionStateChanged(): GroupCall not found in map!');
+                this.logError('handleConnectionStateChanged(): GroupCall not found in map!');
                 return;
             }
             groupCall.handleConnectionStateChanged(connectionState);
@@ -498,7 +498,7 @@ class RingRTCType {
             let groupCall = this._groupCallByClientId.get(clientId);
             if (!groupCall) {
                 let error = new Error();
-                this.onLogMessage(CallLogLevel.Error, 'Service.ts', 0, 'handleJoinStateChanged(): GroupCall not found in map!');
+                this.logError('handleJoinStateChanged(): GroupCall not found in map!');
                 return;
             }
             groupCall.handleJoinStateChanged(joinState);
@@ -509,7 +509,7 @@ class RingRTCType {
         silly_deadlock_protection(() => {
             let groupCall = this._groupCallByClientId.get(clientId);
             if (!groupCall) {
-                this.onLogMessage(CallLogLevel.Error, 'Service.ts', 0, 'handleNetworkRouteChanged(): GroupCall not found in map!');
+                this.logError('handleNetworkRouteChanged(): GroupCall not found in map!');
                 return;
             }
             groupCall.handleNetworkRouteChanged(localNetworkAdapterType);
@@ -521,7 +521,7 @@ class RingRTCType {
             let groupCall = this._groupCallByClientId.get(clientId);
             if (!groupCall) {
                 let error = new Error();
-                this.onLogMessage(CallLogLevel.Error, 'Service.ts', 0, 'handleRemoteDevicesChanged(): GroupCall not found in map!');
+                this.logError('handleRemoteDevicesChanged(): GroupCall not found in map!');
                 return;
             }
             groupCall.handleRemoteDevicesChanged(remoteDeviceStates);
@@ -533,7 +533,7 @@ class RingRTCType {
             let groupCall = this._groupCallByClientId.get(clientId);
             if (!groupCall) {
                 let error = new Error();
-                this.onLogMessage(CallLogLevel.Error, 'Service.ts', 0, 'handlePeekChanged(): GroupCall not found in map!');
+                this.logError('handlePeekChanged(): GroupCall not found in map!');
                 return;
             }
             groupCall.handlePeekChanged(info);
@@ -543,7 +543,7 @@ class RingRTCType {
     handlePeekResponse(request_id, info) {
         silly_deadlock_protection(() => {
             if (!this._peekRequests.resolve(request_id, info)) {
-                this.onLogMessage(CallLogLevel.Warn, 'Service.ts', 0, `Invalid request ID for handlePeekResponse: ${request_id}`);
+                this.logWarn(`Invalid request ID for handlePeekResponse: ${request_id}`);
             }
         });
     }
@@ -553,7 +553,7 @@ class RingRTCType {
             let groupCall = this._groupCallByClientId.get(clientId);
             if (!groupCall) {
                 let error = new Error();
-                this.onLogMessage(CallLogLevel.Error, 'Service.ts', 0, 'handleEnded(): GroupCall not found in map!');
+                this.logError('handleEnded(): GroupCall not found in map!');
                 return;
             }
             this._groupCallByClientId.delete(clientId);
@@ -578,6 +578,18 @@ class RingRTCType {
             this.handleLogMessage(level, fileName, line, message);
         }
     }
+    // Called from here
+    logError(message) {
+        this.onLogMessage(CallLogLevel.Error, 'Service.ts', 0, message);
+    }
+    // Called from here
+    logWarn(message) {
+        this.onLogMessage(CallLogLevel.Warn, 'Service.ts', 0, message);
+    }
+    // Called from here
+    logInfo(message) {
+        this.onLogMessage(CallLogLevel.Info, 'Service.ts', 0, message);
+    }
     // Called by MessageReceiver
     // tslint:disable-next-line cyclomatic-complexity
     handleCallingMessage(remoteUserId, remoteUuid, remoteDeviceId, localDeviceId, messageAgeSec, message, senderIdentityKey, receiverIdentityKey) {
@@ -592,7 +604,7 @@ class RingRTCType {
             // opaque is required. sdp is obsolete, but it might still come with opaque.
             if (!opaque) {
                 // TODO: Remove once the proto is updated to only support opaque and require it.
-                this.onLogMessage(CallLogLevel.Error, 'Service.ts', 0, 'handleCallingMessage(): opaque not received for offer, remote should update');
+                this.logError('handleCallingMessage(): opaque not received for offer, remote should update');
                 return;
             }
             const offerType = message.offer.type || OfferType.AudioCall;
@@ -604,7 +616,7 @@ class RingRTCType {
             // opaque is required. sdp is obsolete, but it might still come with opaque.
             if (!opaque) {
                 // TODO: Remove once the proto is updated to only support opaque and require it.
-                this.onLogMessage(CallLogLevel.Error, 'Service.ts', 0, 'handleCallingMessage(): opaque not received for answer, remote should update');
+                this.logError('handleCallingMessage(): opaque not received for answer, remote should update');
                 return;
             }
             this.callManager.receivedAnswer(remoteUserId, remoteDeviceId, callId, opaque, senderIdentityKey, receiverIdentityKey);
@@ -621,12 +633,12 @@ class RingRTCType {
                 }
                 else {
                     // TODO: Remove once the proto is updated to only support opaque and require it.
-                    this.onLogMessage(CallLogLevel.Error, 'Service.ts', 0, 'handleCallingMessage(): opaque not received for ice candidate, remote should update');
+                    this.logError('handleCallingMessage(): opaque not received for ice candidate, remote should update');
                     continue;
                 }
             }
             if (candidates.length == 0) {
-                this.onLogMessage(CallLogLevel.Warn, 'Service.ts', 0, 'handleCallingMessage(): No ice candidates in ice message, remote should update');
+                this.logWarn('handleCallingMessage(): No ice candidates in ice message, remote should update');
                 return;
             }
             this.callManager.receivedIceCandidates(remoteUserId, remoteDeviceId, callId, candidates);
@@ -649,12 +661,12 @@ class RingRTCType {
         }
         if (message.opaque) {
             if (remoteUuid == null) {
-                this.onLogMessage(CallLogLevel.Error, 'Service.ts', 0, 'handleCallingMessage(): opaque message received without UUID!');
+                this.logError('handleCallingMessage(): opaque message received without UUID!');
                 return;
             }
             const data = to_buffer(message.opaque.data);
             if (data == undefined) {
-                this.onLogMessage(CallLogLevel.Error, 'Service.ts', 0, 'handleCallingMessage(): opaque message received without data!');
+                this.logError('handleCallingMessage(): opaque message received without data!');
                 return;
             }
             this.callManager.receivedCallMessage(remoteUuid, remoteDeviceId, localDeviceId, data, messageAgeSec);

@@ -80,6 +80,9 @@ export declare class RingRTCType {
     handleEnded(clientId: GroupCallClientId, reason: GroupCallEndReason): void;
     groupCallRingUpdate(groupId: GroupId, ringIdString: string, sender: GroupCallUserId, state: RingUpdate): void;
     onLogMessage(level: number, fileName: string, line: number, message: string): void;
+    logError(message: string): void;
+    logWarn(message: string): void;
+    logInfo(message: string): void;
     handleCallingMessage(remoteUserId: UserId, remoteUuid: Buffer | null, remoteDeviceId: DeviceId, localDeviceId: DeviceId, messageAgeSec: number, message: CallingMessage, senderIdentityKey: Buffer, receiverIdentityKey: Buffer): void;
     sendHttpRequest(requestId: number, url: string, method: HttpMethod, headers: {
         [name: string]: string;
