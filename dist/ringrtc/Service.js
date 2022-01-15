@@ -13,7 +13,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.CallLogLevel = exports.CallEndedReason = exports.CallState = exports.RingCancelReason = exports.BandwidthMode = exports.HangupType = exports.OpaqueMessage = exports.HangupMessage = exports.BusyMessage = exports.IceCandidateMessage = exports.AnswerMessage = exports.OfferType = exports.OfferMessage = exports.CallingMessage = exports.GroupCall = exports.VideoRequest = exports.GroupMemberInfo = exports.RemoteDeviceState = exports.LocalDeviceState = exports.HttpMethod = exports.RingUpdate = exports.CallMessageUrgency = exports.GroupCallEndReason = exports.JoinState = exports.ConnectionState = exports.Call = exports.RingRTCType = exports.NetworkRoute = exports.PeekInfo = void 0;
+exports.CallLogLevel = exports.CallEndedReason = exports.CallState = exports.RingCancelReason = exports.BandwidthMode = exports.HangupType = exports.OpaqueMessage = exports.HangupMessage = exports.BusyMessage = exports.IceCandidateMessage = exports.AnswerMessage = exports.OfferType = exports.OfferMessage = exports.CallingMessage = exports.GroupCall = exports.VideoRequest = exports.GroupMemberInfo = exports.RemoteDeviceState = exports.LocalDeviceState = exports.HttpMethod = exports.RingUpdate = exports.CallMessageUrgency = exports.GroupCallEndReason = exports.JoinState = exports.ConnectionState = exports.Call = exports.RingRTCType = exports.ReceivedAudioLevel = exports.NetworkRoute = exports.PeekInfo = void 0;
 /* tslint:disable max-classes-per-file */
 const os = require("os");
 const process = require("process");
@@ -157,6 +157,13 @@ class NetworkRoute {
     }
 }
 exports.NetworkRoute = NetworkRoute;
+class ReceivedAudioLevel {
+    constructor(demuxId, level) {
+        this.demuxId = demuxId;
+        this.level = level;
+    }
+}
+exports.ReceivedAudioLevel = ReceivedAudioLevel;
 class Requests {
     constructor() {
         this._resolveById = new Map();
@@ -342,6 +349,17 @@ class RingRTCType {
             call.handleNetworkRouteChanged();
         }
     }
+    onAudioLevels(remoteUserId, capturedLevel, receivedLevel) {
+        const call = this._call;
+        if (!call || call.remoteUserId !== remoteUserId) {
+            return;
+        }
+        call.outgoingAudioLevel = capturedLevel;
+        call.remoteAudioLevel = receivedLevel;
+        if (call.handleAudioLevels) {
+            call.handleAudioLevels();
+        }
+    }
     renderVideoFrame(width, height, buffer) {
         var _a, _b;
         const call = this._call;
@@ -513,6 +531,15 @@ class RingRTCType {
                 return;
             }
             groupCall.handleNetworkRouteChanged(localNetworkAdapterType);
+        });
+    }
+    // Called by Rust
+    handleAudioLevels(clientId, capturedLevel, receivedLevels) {
+        silly_deadlock_protection(() => {
+            let groupCall = this._groupCallByClientId.get(clientId);
+            if (!!groupCall) {
+                groupCall.handleAudioLevels(capturedLevel, receivedLevels);
+            }
         });
     }
     // Called by Rust
@@ -797,6 +824,8 @@ class Call {
         this._outgoingVideoEnabled = false;
         this._outgoingVideoIsScreenShare = false;
         this._remoteVideoEnabled = false;
+        this.outgoingAudioLevel = 0;
+        this.remoteAudioLevel = 0;
         this.remoteSharingScreen = false;
         this.networkRoute = new NetworkRoute();
         this._videoCapturer = null;
@@ -1058,6 +1087,7 @@ class LocalDeviceState {
         // By default audio and video are muted.
         this.audioMuted = true;
         this.videoMuted = true;
+        this.audioLevel = 0;
         this.presenting = false;
         this.sharingScreen = false;
         this.networkRoute = new NetworkRoute();
@@ -1070,6 +1100,7 @@ class RemoteDeviceState {
         this.demuxId = demuxId;
         this.userId = userId;
         this.mediaKeysReceived = mediaKeysReceived;
+        this.audioLevel = 0;
     }
 }
 exports.RemoteDeviceState = RemoteDeviceState;
@@ -1202,6 +1233,19 @@ class GroupCall {
         this._localDeviceState.networkRoute.localAdapterType =
             localNetworkAdapterType;
         this._observer.onLocalDeviceStateChanged(this);
+    }
+    handleAudioLevels(capturedLevel, receivedLevels) {
+        this._localDeviceState.audioLevel = capturedLevel;
+        if (this._remoteDeviceStates != undefined) {
+            for (const received of receivedLevels) {
+                for (let remoteDeviceState of this._remoteDeviceStates) {
+                    if (remoteDeviceState.demuxId == received.demuxId) {
+                        remoteDeviceState.audioLevel = received.level;
+                    }
+                }
+            }
+        }
+        this._observer.onAudioLevels(this);
     }
     // Called by Rust via RingRTC object
     handleRemoteDevicesChanged(remoteDeviceStates) {

@@ -30,6 +30,12 @@ export declare class NetworkRoute {
     localAdapterType: NetworkAdapterType;
     constructor();
 }
+export declare type AudioLevel = number;
+export declare class ReceivedAudioLevel {
+    demuxId: number;
+    level: AudioLevel;
+    constructor(demuxId: number, level: AudioLevel);
+}
 export declare class RingRTCType {
     private readonly callManager;
     private _call;
@@ -58,6 +64,7 @@ export declare class RingRTCType {
     onRemoteVideoEnabled(remoteUserId: UserId, enabled: boolean): void;
     onRemoteSharingScreen(remoteUserId: UserId, enabled: boolean): void;
     onNetworkRouteChanged(remoteUserId: UserId, localNetworkAdapterType: NetworkAdapterType): void;
+    onAudioLevels(remoteUserId: UserId, capturedLevel: AudioLevel, receivedLevel: AudioLevel): void;
     renderVideoFrame(width: number, height: number, buffer: Buffer): void;
     onSendOffer(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean, offerType: OfferType, opaque: Buffer): void;
     onSendAnswer(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean, opaque: Buffer): void;
@@ -74,6 +81,7 @@ export declare class RingRTCType {
     handleConnectionStateChanged(clientId: GroupCallClientId, connectionState: ConnectionState): void;
     handleJoinStateChanged(clientId: GroupCallClientId, joinState: JoinState): void;
     handleNetworkRouteChanged(clientId: GroupCallClientId, localNetworkAdapterType: NetworkAdapterType): void;
+    handleAudioLevels(clientId: GroupCallClientId, capturedLevel: AudioLevel, receivedLevels: Array<ReceivedAudioLevel>): void;
     handleRemoteDevicesChanged(clientId: GroupCallClientId, remoteDeviceStates: Array<RemoteDeviceState>): void;
     handlePeekChanged(clientId: GroupCallClientId, info: PeekInfo): void;
     handlePeekResponse(request_id: number, info: PeekInfo): void;
@@ -142,6 +150,8 @@ export declare class Call {
     private _outgoingVideoEnabled;
     private _outgoingVideoIsScreenShare;
     private _remoteVideoEnabled;
+    outgoingAudioLevel: AudioLevel;
+    remoteAudioLevel: AudioLevel;
     remoteSharingScreen: boolean;
     networkRoute: NetworkRoute;
     private _videoCapturer;
@@ -151,6 +161,7 @@ export declare class Call {
     handleRemoteVideoEnabled?: () => void;
     handleRemoteSharingScreen?: () => void;
     handleNetworkRouteChanged?: () => void;
+    handleAudioLevels?: () => void;
     renderVideoFrame?: (width: number, height: number, buffer: Buffer) => void;
     constructor(callManager: CallManager, remoteUserId: UserId, callId: CallId, isIncoming: boolean, isVideoCall: boolean, settings: CallSettings | null, state: CallState);
     get remoteUserId(): UserId;
@@ -230,6 +241,7 @@ export declare class LocalDeviceState {
     joinState: JoinState;
     audioMuted: boolean;
     videoMuted: boolean;
+    audioLevel: AudioLevel;
     presenting: boolean;
     sharingScreen: boolean;
     networkRoute: NetworkRoute;
@@ -241,6 +253,7 @@ export declare class RemoteDeviceState {
     mediaKeysReceived: boolean;
     audioMuted: boolean | undefined;
     videoMuted: boolean | undefined;
+    audioLevel: AudioLevel;
     presenting: boolean | undefined;
     sharingScreen: boolean | undefined;
     videoAspectRatio: number | undefined;
@@ -266,6 +279,7 @@ export interface GroupCallObserver {
     requestGroupMembers(groupCall: GroupCall): void;
     onLocalDeviceStateChanged(groupCall: GroupCall): void;
     onRemoteDeviceStatesChanged(groupCall: GroupCall): void;
+    onAudioLevels(groupCall: GroupCall): void;
     onPeekChanged(groupCall: GroupCall): void;
     onEnded(groupCall: GroupCall, reason: GroupCallEndReason): void;
 }
@@ -300,6 +314,7 @@ export declare class GroupCall {
     handleConnectionStateChanged(connectionState: ConnectionState): void;
     handleJoinStateChanged(joinState: JoinState): void;
     handleNetworkRouteChanged(localNetworkAdapterType: NetworkAdapterType): void;
+    handleAudioLevels(capturedLevel: AudioLevel, receivedLevels: Array<ReceivedAudioLevel>): void;
     handleRemoteDevicesChanged(remoteDeviceStates: Array<RemoteDeviceState>): void;
     handlePeekChanged(info: PeekInfo): void;
     handleEnded(reason: GroupCallEndReason): void;
