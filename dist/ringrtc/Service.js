@@ -186,6 +186,12 @@ class Requests {
         return true;
     }
 }
+class CallInfo {
+    constructor(isVideoCall, receivedAtCounter) {
+        this.isVideoCall = isVideoCall;
+        this.receivedAtCounter = receivedAtCounter;
+    }
+}
 class RingRTCType {
     constructor() {
         // Set by UX
@@ -201,6 +207,11 @@ class RingRTCType {
         this._call = null;
         this._groupCallByClientId = new Map();
         this._peekRequests = new Requests();
+        this._callInfoByCallId = new Map();
+    }
+    getCallInfoKey(callId) {
+        // CallId is u64 so use a string key instead.
+        return callId.high.toString() + callId.low.toString();
     }
     setConfig(config) {
         this.callManager.setConfig(config);
@@ -287,7 +298,13 @@ class RingRTCType {
         call.state = state;
     }
     // Called by Rust
-    onCallEnded(remoteUserId, reason, ageSec) {
+    onCallEnded(remoteUserId, callId, reason, ageSec) {
+        let callInfo = this._callInfoByCallId.get(this.getCallInfoKey(callId));
+        const { isVideoCall, receivedAtCounter } = callInfo || {
+            isVideoCall: false,
+            receivedAtCounter: undefined,
+        };
+        this._callInfoByCallId.delete(this.getCallInfoKey(callId));
         const call = this._call;
         if (call && reason == CallEndedReason.ReceivedOfferWithGlare) {
             // The current call is the outgoing call.
@@ -301,16 +318,25 @@ class RingRTCType {
             // We're the "loser", so end the outgoing/current call and wait for a new incoming call.
             // (proceeded down to the code below)
         }
-        // If there is no call or the remoteUserId doesn't match that of
-        // the current call, or if one of the "receive offer while already
-        // in a call" reasons are provided, don't end the current call,
-        // just update the call history.
+        // If there is no call or the remoteUserId doesn't match that of the current
+        // call, or if one of the "receive offer while already in a call or because
+        // it expired" reasons are provided, don't end the current call, because
+        // there isn't one for this Ended notification, just update the call history.
+        // If the incoming call ends while in the prering state, also immediately
+        // update the call history because it is just a replay of messages.
         if (!call ||
             call.remoteUserId !== remoteUserId ||
             reason === CallEndedReason.ReceivedOfferWhileActive ||
-            reason === CallEndedReason.ReceivedOfferExpired) {
+            reason === CallEndedReason.ReceivedOfferExpired ||
+            (call.state === CallState.Prering && call.isIncoming)) {
             if (this.handleAutoEndedIncomingCallRequest) {
-                this.handleAutoEndedIncomingCallRequest(remoteUserId, reason, ageSec);
+                this.handleAutoEndedIncomingCallRequest(remoteUserId, reason, ageSec, isVideoCall, receivedAtCounter);
+            }
+            if (call && (call.state === CallState.Prering && call.isIncoming)) {
+                // Set the state to Ended without triggering a state update since we
+                // already notified the client.
+                call.endedReason = reason;
+                call.setCallEnded();
             }
             return;
         }
@@ -595,7 +621,7 @@ class RingRTCType {
                 this.handleGroupCallRingUpdate(groupId, ringId, sender, state);
             }
             else {
-                console.log('RingRTC.handleGroupCallRingUpdate is not set!');
+                this.logError('RingRTC.handleGroupCallRingUpdate is not set!');
             }
         });
     }
@@ -619,7 +645,7 @@ class RingRTCType {
     }
     // Called by MessageReceiver
     // tslint:disable-next-line cyclomatic-complexity
-    handleCallingMessage(remoteUserId, remoteUuid, remoteDeviceId, localDeviceId, messageAgeSec, message, senderIdentityKey, receiverIdentityKey) {
+    handleCallingMessage(remoteUserId, remoteUuid, remoteDeviceId, localDeviceId, messageAgeSec, messageReceivedAtCounter, message, senderIdentityKey, receiverIdentityKey) {
         if (message.destinationDeviceId &&
             message.destinationDeviceId !== localDeviceId) {
             // Drop the message as it isn't for this device, handleIgnoredCall() is not needed.
@@ -635,6 +661,9 @@ class RingRTCType {
                 return;
             }
             const offerType = message.offer.type || OfferType.AudioCall;
+            // Save the call details for later when the call is ended.
+            let callInfo = new CallInfo(offerType === OfferType.VideoCall, messageReceivedAtCounter);
+            this._callInfoByCallId.set(this.getCallInfoKey(callId), callInfo);
             this.callManager.receivedOffer(remoteUserId, remoteDeviceId, localDeviceId, messageAgeSec, callId, offerType, opaque, senderIdentityKey, receiverIdentityKey);
         }
         if (message.answer && message.answer.callId) {
@@ -705,7 +734,7 @@ class RingRTCType {
             this.handleSendHttpRequest(requestId, url, method, headers, body);
         }
         else {
-            console.log('RingRTC.handleSendHttpRequest is not set!');
+            this.logError('RingRTC.handleSendHttpRequest is not set!');
         }
     }
     // Called by Rust
@@ -714,7 +743,7 @@ class RingRTCType {
             this.handleSendCallMessage(recipientUuid, message, urgency);
         }
         else {
-            console.log('RingRTC.handleSendCallMessage is not set!');
+            this.logError('RingRTC.handleSendCallMessage is not set!');
         }
     }
     // Called by Rust
@@ -723,7 +752,7 @@ class RingRTCType {
             this.handleSendCallMessageToGroup(groupId, message, urgency);
         }
         else {
-            console.log('RingRTC.handleSendCallMessageToGroup is not set!');
+            this.logError('RingRTC.handleSendCallMessageToGroup is not set!');
         }
     }
     // These are convenience methods.  One could use the Call class instead.
@@ -860,6 +889,9 @@ class Call {
         if (!!this.handleStateChanged) {
             this.handleStateChanged();
         }
+    }
+    setCallEnded() {
+        this._state = CallState.Ended;
     }
     set videoCapturer(capturer) {
         this._videoCapturer = capturer;
@@ -1365,7 +1397,7 @@ var RingCancelReason;
 })(RingCancelReason = exports.RingCancelReason || (exports.RingCancelReason = {}));
 var CallState;
 (function (CallState) {
-    CallState["Prering"] = "init";
+    CallState["Prering"] = "idle";
     CallState["Ringing"] = "ringing";
     CallState["Accepted"] = "connected";
     CallState["Reconnecting"] = "connecting";

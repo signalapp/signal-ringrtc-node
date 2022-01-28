@@ -41,9 +41,11 @@ export declare class RingRTCType {
     private _call;
     private _groupCallByClientId;
     private _peekRequests;
+    private _callInfoByCallId;
+    private getCallInfoKey;
     handleOutgoingSignaling: ((remoteUserId: UserId, message: CallingMessage) => Promise<boolean>) | null;
     handleIncomingCall: ((call: Call) => Promise<CallSettings | null>) | null;
-    handleAutoEndedIncomingCallRequest: ((remoteUserId: UserId, reason: CallEndedReason, ageSec: number) => void) | null;
+    handleAutoEndedIncomingCallRequest: ((remoteUserId: UserId, reason: CallEndedReason, ageSec: number, wasVideoCall: boolean, receivedAtCounter: number | undefined) => void) | null;
     handleLogMessage: ((level: CallLogLevel, fileName: string, line: number, message: string) => void) | null;
     handleSendHttpRequest: ((requestId: number, url: string, method: HttpMethod, headers: {
         [name: string]: string;
@@ -60,7 +62,7 @@ export declare class RingRTCType {
     onStartIncomingCall(remoteUserId: UserId, callId: CallId, isVideoCall: boolean): void;
     private proceed;
     onCallState(remoteUserId: UserId, state: CallState): void;
-    onCallEnded(remoteUserId: UserId, reason: CallEndedReason, ageSec: number): void;
+    onCallEnded(remoteUserId: UserId, callId: CallId, reason: CallEndedReason, ageSec: number): void;
     onRemoteVideoEnabled(remoteUserId: UserId, enabled: boolean): void;
     onRemoteSharingScreen(remoteUserId: UserId, enabled: boolean): void;
     onNetworkRouteChanged(remoteUserId: UserId, localNetworkAdapterType: NetworkAdapterType): void;
@@ -91,7 +93,7 @@ export declare class RingRTCType {
     logError(message: string): void;
     logWarn(message: string): void;
     logInfo(message: string): void;
-    handleCallingMessage(remoteUserId: UserId, remoteUuid: Buffer | null, remoteDeviceId: DeviceId, localDeviceId: DeviceId, messageAgeSec: number, message: CallingMessage, senderIdentityKey: Buffer, receiverIdentityKey: Buffer): void;
+    handleCallingMessage(remoteUserId: UserId, remoteUuid: Buffer | null, remoteDeviceId: DeviceId, localDeviceId: DeviceId, messageAgeSec: number, messageReceivedAtCounter: number, message: CallingMessage, senderIdentityKey: Buffer, receiverIdentityKey: Buffer): void;
     sendHttpRequest(requestId: number, url: string, method: HttpMethod, headers: {
         [name: string]: string;
     }, body: Buffer | undefined): void;
@@ -169,6 +171,7 @@ export declare class Call {
     get isVideoCall(): boolean;
     get state(): CallState;
     set state(state: CallState);
+    setCallEnded(): void;
     set videoCapturer(capturer: VideoCapturer | null);
     set videoRenderer(renderer: VideoRenderer | null);
     accept(): void;
@@ -447,7 +450,7 @@ export interface CallManagerCallbacks {
     onStartOutgoingCall(remoteUserId: UserId, callId: CallId): void;
     onStartIncomingCall(remoteUserId: UserId, callId: CallId, isVideoCall: boolean): void;
     onCallState(remoteUserId: UserId, state: CallState): void;
-    onCallEnded(remoteUserId: UserId, endedReason: CallEndedReason, ageSec: number): void;
+    onCallEnded(remoteUserId: UserId, callId: CallId, endedReason: CallEndedReason, ageSec: number): void;
     onRemoteVideoEnabled(remoteUserId: UserId, enabled: boolean): void;
     onRemoteSharingScreen(remoteUserId: UserId, enabled: boolean): void;
     onSendOffer(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean, mediaType: number, opaque: Buffer): void;
@@ -471,7 +474,7 @@ export interface CallManagerCallbacks {
     onLogMessage(level: number, fileName: string, line: number, message: string): void;
 }
 export declare enum CallState {
-    Prering = "init",
+    Prering = "idle",
     Ringing = "ringing",
     Accepted = "connected",
     Reconnecting = "connecting",
