@@ -1,5 +1,5 @@
 /// <reference types="node" />
-import { GumVideoCaptureOptions } from './VideoSupport';
+import { GumVideoCaptureOptions, VideoPixelFormatEnum } from './VideoSupport';
 declare class Config {
     use_new_audio_device_module: boolean;
 }
@@ -30,11 +30,12 @@ export declare class NetworkRoute {
     localAdapterType: NetworkAdapterType;
     constructor();
 }
-export declare type AudioLevel = number;
+export declare type RawAudioLevel = number;
+export declare type NormalizedAudioLevel = number;
 export declare class ReceivedAudioLevel {
     demuxId: number;
-    level: AudioLevel;
-    constructor(demuxId: number, level: AudioLevel);
+    level: RawAudioLevel;
+    constructor(demuxId: number, level: RawAudioLevel);
 }
 export declare class RingRTCType {
     private readonly callManager;
@@ -66,7 +67,7 @@ export declare class RingRTCType {
     onRemoteVideoEnabled(remoteUserId: UserId, enabled: boolean): void;
     onRemoteSharingScreen(remoteUserId: UserId, enabled: boolean): void;
     onNetworkRouteChanged(remoteUserId: UserId, localNetworkAdapterType: NetworkAdapterType): void;
-    onAudioLevels(remoteUserId: UserId, capturedLevel: AudioLevel, receivedLevel: AudioLevel): void;
+    onAudioLevels(remoteUserId: UserId, capturedLevel: RawAudioLevel, receivedLevel: RawAudioLevel): void;
     renderVideoFrame(width: number, height: number, buffer: Buffer): void;
     onSendOffer(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean, offerType: OfferType, opaque: Buffer): void;
     onSendAnswer(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, broadcast: boolean, opaque: Buffer): void;
@@ -76,14 +77,14 @@ export declare class RingRTCType {
     private sendSignaling;
     receivedHttpResponse(requestId: number, status: number, body: Buffer): void;
     httpRequestFailed(requestId: number, debugInfo: string | undefined): void;
-    getGroupCall(groupId: Buffer, sfuUrl: string, hkdfExtraInfo: Buffer, observer: GroupCallObserver): GroupCall | undefined;
+    getGroupCall(groupId: Buffer, sfuUrl: string, hkdfExtraInfo: Buffer, audioLevelsIntervalMillis: number | undefined, observer: GroupCallObserver): GroupCall | undefined;
     peekGroupCall(sfu_url: string, membership_proof: Buffer, group_members: Array<GroupMemberInfo>): Promise<PeekInfo>;
     requestMembershipProof(clientId: GroupCallClientId): void;
     requestGroupMembers(clientId: GroupCallClientId): void;
     handleConnectionStateChanged(clientId: GroupCallClientId, connectionState: ConnectionState): void;
     handleJoinStateChanged(clientId: GroupCallClientId, joinState: JoinState): void;
     handleNetworkRouteChanged(clientId: GroupCallClientId, localNetworkAdapterType: NetworkAdapterType): void;
-    handleAudioLevels(clientId: GroupCallClientId, capturedLevel: AudioLevel, receivedLevels: Array<ReceivedAudioLevel>): void;
+    handleAudioLevels(clientId: GroupCallClientId, capturedLevel: RawAudioLevel, receivedLevels: Array<ReceivedAudioLevel>): void;
     handleRemoteDevicesChanged(clientId: GroupCallClientId, remoteDeviceStates: Array<RemoteDeviceState>): void;
     handlePeekChanged(clientId: GroupCallClientId, info: PeekInfo): void;
     handlePeekResponse(request_id: number, info: PeekInfo): void;
@@ -119,6 +120,7 @@ export interface CallSettings {
     iceServer: IceServer;
     hideIp: boolean;
     bandwidthMode: BandwidthMode;
+    audioLevelsIntervalMillis?: number;
 }
 interface IceServer {
     username?: string;
@@ -152,8 +154,8 @@ export declare class Call {
     private _outgoingVideoEnabled;
     private _outgoingVideoIsScreenShare;
     private _remoteVideoEnabled;
-    outgoingAudioLevel: AudioLevel;
-    remoteAudioLevel: AudioLevel;
+    outgoingAudioLevel: NormalizedAudioLevel;
+    remoteAudioLevel: NormalizedAudioLevel;
     remoteSharingScreen: boolean;
     networkRoute: NetworkRoute;
     private _videoCapturer;
@@ -185,7 +187,7 @@ export declare class Call {
     set outgoingVideoIsScreenShare(isScreenShare: boolean);
     get remoteVideoEnabled(): boolean;
     set remoteVideoEnabled(enabled: boolean);
-    sendVideoFrame(width: number, height: number, rgbaBuffer: Buffer): void;
+    sendVideoFrame(width: number, height: number, format: VideoPixelFormatEnum, buffer: Buffer): void;
     receiveVideoFrame(buffer: Buffer): [number, number] | undefined;
     private enableOrDisableCapturer;
     private setOutgoingVideoEnabled;
@@ -244,7 +246,7 @@ export declare class LocalDeviceState {
     joinState: JoinState;
     audioMuted: boolean;
     videoMuted: boolean;
-    audioLevel: AudioLevel;
+    audioLevel: NormalizedAudioLevel;
     presenting: boolean;
     sharingScreen: boolean;
     networkRoute: NetworkRoute;
@@ -256,7 +258,7 @@ export declare class RemoteDeviceState {
     mediaKeysReceived: boolean;
     audioMuted: boolean | undefined;
     videoMuted: boolean | undefined;
-    audioLevel: AudioLevel;
+    audioLevel: NormalizedAudioLevel;
     presenting: boolean | undefined;
     sharingScreen: boolean | undefined;
     videoAspectRatio: number | undefined;
@@ -294,7 +296,7 @@ export declare class GroupCall {
     private _localDeviceState;
     private _remoteDeviceStates;
     private _peekInfo;
-    constructor(callManager: CallManager, groupId: Buffer, sfuUrl: string, hkdfExtraInfo: Buffer, observer: GroupCallObserver);
+    constructor(callManager: CallManager, groupId: Buffer, sfuUrl: string, hkdfExtraInfo: Buffer, audioLevelsIntervalMillis: number | undefined, observer: GroupCallObserver);
     connect(): void;
     join(): void;
     leave(): void;
@@ -317,11 +319,11 @@ export declare class GroupCall {
     handleConnectionStateChanged(connectionState: ConnectionState): void;
     handleJoinStateChanged(joinState: JoinState): void;
     handleNetworkRouteChanged(localNetworkAdapterType: NetworkAdapterType): void;
-    handleAudioLevels(capturedLevel: AudioLevel, receivedLevels: Array<ReceivedAudioLevel>): void;
+    handleAudioLevels(capturedLevel: RawAudioLevel, receivedLevels: Array<ReceivedAudioLevel>): void;
     handleRemoteDevicesChanged(remoteDeviceStates: Array<RemoteDeviceState>): void;
     handlePeekChanged(info: PeekInfo): void;
     handleEnded(reason: GroupCallEndReason): void;
-    sendVideoFrame(width: number, height: number, rgbaBuffer: Buffer): void;
+    sendVideoFrame(width: number, height: number, format: VideoPixelFormatEnum, buffer: Buffer): void;
     getVideoSource(remoteDemuxId: number): GroupCallVideoFrameSource;
     setRemoteAspectRatio(remoteDemuxId: number, aspectRatio: number): void;
 }
@@ -402,7 +404,7 @@ export interface CallManager {
     setConfig(config: Config): void;
     setSelfUuid(uuid: Buffer): void;
     createOutgoingCall(remoteUserId: UserId, isVideoCall: boolean, localDeviceId: DeviceId): CallId;
-    proceed(callId: CallId, iceServerUsername: string, iceServerPassword: string, iceServerUrls: Array<string>, hideIp: boolean, bandwidthMode: BandwidthMode): void;
+    proceed(callId: CallId, iceServerUsername: string, iceServerPassword: string, iceServerUrls: Array<string>, hideIp: boolean, bandwidthMode: BandwidthMode, audioLevelsIntervalMillis: number): void;
     accept(callId: CallId): void;
     ignore(callId: CallId): void;
     hangup(): void;
@@ -413,7 +415,7 @@ export interface CallManager {
     setOutgoingVideoEnabled(enabled: boolean): void;
     setOutgoingVideoIsScreenShare(enabled: boolean): void;
     updateBandwidthMode(bandwidthMode: BandwidthMode): void;
-    sendVideoFrame(width: number, height: number, buffer: Buffer): void;
+    sendVideoFrame(width: number, height: number, format: VideoPixelFormatEnum, buffer: Buffer): void;
     receiveVideoFrame(buffer: Buffer): [number, number] | undefined;
     receivedOffer(remoteUserId: UserId, remoteDeviceId: DeviceId, messageAgeSec: number, callId: CallId, offerType: OfferType, localDeviceId: DeviceId, opaque: Buffer, senderIdentityKey: Buffer, receiverIdentityKey: Buffer): void;
     receivedAnswer(remoteUserId: UserId, remoteDeviceId: DeviceId, callId: CallId, opaque: Buffer, senderIdentityKey: Buffer, receiverIdentityKey: Buffer): void;
@@ -423,7 +425,7 @@ export interface CallManager {
     receivedCallMessage(remoteUserId: Buffer, remoteDeviceId: DeviceId, localDeviceId: DeviceId, data: Buffer, messageAgeSec: number): void;
     receivedHttpResponse(requestId: number, status: number, body: Buffer): void;
     httpRequestFailed(requestId: number, debugInfo: string | undefined): void;
-    createGroupCallClient(groupId: Buffer, sfuUrl: string, hkdfExtraInfo: Buffer): GroupCallClientId;
+    createGroupCallClient(groupId: Buffer, sfuUrl: string, hkdfExtraInfo: Buffer, audioLevelsIntervalMillis: number): GroupCallClientId;
     deleteGroupCallClient(clientId: GroupCallClientId): void;
     connect(clientId: GroupCallClientId): void;
     join(clientId: GroupCallClientId): void;

@@ -164,6 +164,9 @@ class ReceivedAudioLevel {
     }
 }
 exports.ReceivedAudioLevel = ReceivedAudioLevel;
+function normalizeAudioLevel(raw) {
+    return raw / 32767;
+}
 class Requests {
     constructor() {
         this._resolveById = new Map();
@@ -286,7 +289,7 @@ class RingRTCType {
     }
     proceed(callId, settings) {
         silly_deadlock_protection(() => {
-            this.callManager.proceed(callId, settings.iceServer.username || '', settings.iceServer.password || '', settings.iceServer.urls, settings.hideIp, settings.bandwidthMode);
+            this.callManager.proceed(callId, settings.iceServer.username || '', settings.iceServer.password || '', settings.iceServer.urls, settings.hideIp, settings.bandwidthMode, settings.audioLevelsIntervalMillis || 0);
         });
     }
     // Called by Rust
@@ -380,8 +383,8 @@ class RingRTCType {
         if (!call || call.remoteUserId !== remoteUserId) {
             return;
         }
-        call.outgoingAudioLevel = capturedLevel;
-        call.remoteAudioLevel = receivedLevel;
+        call.outgoingAudioLevel = normalizeAudioLevel(capturedLevel);
+        call.remoteAudioLevel = normalizeAudioLevel(receivedLevel);
         if (call.handleAudioLevels) {
             call.handleAudioLevels();
         }
@@ -485,8 +488,8 @@ class RingRTCType {
     }
     // Group Calls
     // Called by UX
-    getGroupCall(groupId, sfuUrl, hkdfExtraInfo, observer) {
-        const groupCall = new GroupCall(this.callManager, groupId, sfuUrl, hkdfExtraInfo, observer);
+    getGroupCall(groupId, sfuUrl, hkdfExtraInfo, audioLevelsIntervalMillis, observer) {
+        const groupCall = new GroupCall(this.callManager, groupId, sfuUrl, hkdfExtraInfo, audioLevelsIntervalMillis, observer);
         this._groupCallByClientId.set(groupCall.clientId, groupCall);
         return groupCall;
     }
@@ -956,9 +959,9 @@ class Call {
         this.enableOrDisableRenderer();
     }
     // With this method, a Call is a VideoFrameSender
-    sendVideoFrame(width, height, rgbaBuffer) {
+    sendVideoFrame(width, height, format, buffer) {
         // This assumes we only have one active all.
-        this._callManager.sendVideoFrame(width, height, rgbaBuffer);
+        this._callManager.sendVideoFrame(width, height, format, buffer);
     }
     // With this method, a Call is a VideoFrameSource
     receiveVideoFrame(buffer) {
@@ -1157,11 +1160,11 @@ class VideoRequest {
 exports.VideoRequest = VideoRequest;
 class GroupCall {
     // Called by UI via RingRTC object
-    constructor(callManager, groupId, sfuUrl, hkdfExtraInfo, observer) {
+    constructor(callManager, groupId, sfuUrl, hkdfExtraInfo, audioLevelsIntervalMillis, observer) {
         this._callManager = callManager;
         this._observer = observer;
         this._localDeviceState = new LocalDeviceState();
-        this._clientId = this._callManager.createGroupCallClient(groupId, sfuUrl, hkdfExtraInfo);
+        this._clientId = this._callManager.createGroupCallClient(groupId, sfuUrl, hkdfExtraInfo, audioLevelsIntervalMillis || 0);
     }
     get clientId() {
         return this._clientId;
@@ -1267,12 +1270,12 @@ class GroupCall {
         this._observer.onLocalDeviceStateChanged(this);
     }
     handleAudioLevels(capturedLevel, receivedLevels) {
-        this._localDeviceState.audioLevel = capturedLevel;
+        this._localDeviceState.audioLevel = normalizeAudioLevel(capturedLevel);
         if (this._remoteDeviceStates != undefined) {
             for (const received of receivedLevels) {
                 for (let remoteDeviceState of this._remoteDeviceStates) {
                     if (remoteDeviceState.demuxId == received.demuxId) {
-                        remoteDeviceState.audioLevel = received.level;
+                        remoteDeviceState.audioLevel = normalizeAudioLevel(received.level);
                     }
                 }
             }
@@ -1301,9 +1304,9 @@ class GroupCall {
         this._callManager.deleteGroupCallClient(this._clientId);
     }
     // With this, a GroupCall is a VideoFrameSender
-    sendVideoFrame(width, height, rgbaBuffer) {
+    sendVideoFrame(width, height, format, buffer) {
         // This assumes we only have one active all.
-        this._callManager.sendVideoFrame(width, height, rgbaBuffer);
+        this._callManager.sendVideoFrame(width, height, format, buffer);
     }
     // With this, a GroupCall can provide a VideoFrameSource for each remote device.
     getVideoSource(remoteDemuxId) {

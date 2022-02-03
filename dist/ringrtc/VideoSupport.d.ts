@@ -2,11 +2,16 @@
 interface Ref<T> {
     readonly current: T | null;
 }
+export declare enum VideoPixelFormatEnum {
+    I420 = 0,
+    Nv12 = 1,
+    Rgba = 2
+}
 export interface VideoFrameSource {
     receiveVideoFrame(buffer: Buffer): [number, number] | undefined;
 }
 interface VideoFrameSender {
-    sendVideoFrame(width: number, height: number, rgbaBuffer: Buffer): void;
+    sendVideoFrame(width: number, height: number, format: VideoPixelFormatEnum, buffer: Buffer): void;
 }
 export declare class GumVideoCaptureOptions {
     maxWidth: number;
@@ -21,12 +26,9 @@ export declare class GumVideoCapturer {
     private captureOptions?;
     private sender?;
     private mediaStream?;
-    private canvas?;
-    private canvasContext?;
-    private intervalId?;
+    private spawnedSenderRunning;
     private preferredDeviceId?;
-    private capturingStartTime;
-    fakeVideoName: string | undefined;
+    private updateLocalPreviewIntervalId?;
     constructor(defaultCaptureOptions: GumVideoCaptureOptions);
     capturing(): boolean;
     setLocalPreview(localPreview: Ref<HTMLVideoElement> | undefined): void;
@@ -39,10 +41,9 @@ export declare class GumVideoCapturer {
     private startCapturing;
     private stopCapturing;
     private startSending;
+    private spawnSender;
     private stopSending;
     private updateLocalPreviewSourceObject;
-    private captureAndSendOneVideoFrame;
-    private drawFakeVideo;
 }
 export declare const MAX_VIDEO_CAPTURE_WIDTH: number;
 export declare const MAX_VIDEO_CAPTURE_HEIGHT: number;
