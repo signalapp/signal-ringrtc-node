@@ -13,7 +13,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.CallLogLevel = exports.CallEndedReason = exports.CallState = exports.RingCancelReason = exports.BandwidthMode = exports.HangupType = exports.OpaqueMessage = exports.HangupMessage = exports.BusyMessage = exports.IceCandidateMessage = exports.AnswerMessage = exports.OfferType = exports.OfferMessage = exports.CallingMessage = exports.GroupCall = exports.VideoRequest = exports.GroupMemberInfo = exports.RemoteDeviceState = exports.LocalDeviceState = exports.HttpMethod = exports.RingUpdate = exports.CallMessageUrgency = exports.GroupCallEndReason = exports.JoinState = exports.ConnectionState = exports.Call = exports.RingRTCType = exports.ReceivedAudioLevel = exports.NetworkRoute = exports.PeekInfo = void 0;
+exports.CallLogLevel = exports.CallEndedReason = exports.CallState = exports.RingCancelReason = exports.BandwidthMode = exports.HangupType = exports.OpaqueMessage = exports.HangupMessage = exports.BusyMessage = exports.IceCandidateMessage = exports.AnswerMessage = exports.OfferType = exports.OfferMessage = exports.CallingMessage = exports.GroupCall = exports.VideoRequest = exports.GroupMemberInfo = exports.RemoteDeviceState = exports.LocalDeviceState = exports.HttpMethod = exports.RingUpdate = exports.CallMessageUrgency = exports.GroupCallEndReason = exports.JoinState = exports.ConnectionState = exports.Call = exports.RingRTCType = exports.ReceivedAudioLevel = exports.NetworkRoute = exports.PeekInfo = exports.PeekDeviceInfo = void 0;
 /* tslint:disable max-classes-per-file */
 const os = require("os");
 const process = require("process");
@@ -117,9 +117,16 @@ NativeCallManager.prototype.getAudioOutputs =
     Native.cm_getAudioOutputs;
 NativeCallManager.prototype.setAudioOutput = Native.cm_setAudioOutput;
 NativeCallManager.prototype.processEvents = Native.cm_processEvents;
+class PeekDeviceInfo {
+    constructor(demuxId, userId) {
+        this.demuxId = demuxId;
+        this.userId = userId;
+    }
+}
+exports.PeekDeviceInfo = PeekDeviceInfo;
 class PeekInfo {
     constructor() {
-        this.joinedMembers = [];
+        this.devices = [];
         this.deviceCount = 0;
     }
 }
@@ -540,7 +547,7 @@ class RingRTCType {
         });
     }
     // Called by Rust
-    handleJoinStateChanged(clientId, joinState) {
+    handleJoinStateChanged(clientId, joinState, demuxId) {
         silly_deadlock_protection(() => {
             let groupCall = this._groupCallByClientId.get(clientId);
             if (!groupCall) {
@@ -548,7 +555,7 @@ class RingRTCType {
                 this.logError('handleJoinStateChanged(): GroupCall not found in map!');
                 return;
             }
-            groupCall.handleJoinStateChanged(joinState);
+            groupCall.handleJoinStateChanged(joinState, demuxId);
         });
     }
     // Called by Rust
@@ -1259,8 +1266,12 @@ class GroupCall {
         this._observer.onLocalDeviceStateChanged(this);
     }
     // Called by Rust via RingRTC object
-    handleJoinStateChanged(joinState) {
+    handleJoinStateChanged(joinState, demuxId) {
         this._localDeviceState.joinState = joinState;
+        // Don't set to undefined after we leave so we can still know the demuxId after we leave.
+        if (demuxId != undefined) {
+            this._localDeviceState.demuxId = demuxId;
+        }
         this._observer.onLocalDeviceStateChanged(this);
     }
     // Called by Rust via RingRTC object

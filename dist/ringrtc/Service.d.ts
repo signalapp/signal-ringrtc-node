@@ -5,8 +5,13 @@ declare class Config {
 }
 declare type GroupId = Buffer;
 declare type GroupCallUserId = Buffer;
+export declare class PeekDeviceInfo {
+    demuxId: number;
+    userId?: GroupCallUserId;
+    constructor(demuxId: number, userId: GroupCallUserId | undefined);
+}
 export declare class PeekInfo {
-    joinedMembers: Array<GroupCallUserId>;
+    devices: Array<PeekDeviceInfo>;
     creator?: GroupCallUserId;
     eraId?: string;
     maxDevices?: number;
@@ -82,7 +87,7 @@ export declare class RingRTCType {
     requestMembershipProof(clientId: GroupCallClientId): void;
     requestGroupMembers(clientId: GroupCallClientId): void;
     handleConnectionStateChanged(clientId: GroupCallClientId, connectionState: ConnectionState): void;
-    handleJoinStateChanged(clientId: GroupCallClientId, joinState: JoinState): void;
+    handleJoinStateChanged(clientId: GroupCallClientId, joinState: JoinState, demuxId: number | undefined): void;
     handleNetworkRouteChanged(clientId: GroupCallClientId, localNetworkAdapterType: NetworkAdapterType): void;
     handleAudioLevels(clientId: GroupCallClientId, capturedLevel: RawAudioLevel, receivedLevels: Array<ReceivedAudioLevel>): void;
     handleRemoteDevicesChanged(clientId: GroupCallClientId, remoteDeviceStates: Array<RemoteDeviceState>): void;
@@ -244,6 +249,7 @@ export declare enum HttpMethod {
 export declare class LocalDeviceState {
     connectionState: ConnectionState;
     joinState: JoinState;
+    demuxId?: number;
     audioMuted: boolean;
     videoMuted: boolean;
     audioLevel: NormalizedAudioLevel;
@@ -317,7 +323,7 @@ export declare class GroupCall {
     requestMembershipProof(): void;
     requestGroupMembers(): void;
     handleConnectionStateChanged(connectionState: ConnectionState): void;
-    handleJoinStateChanged(joinState: JoinState): void;
+    handleJoinStateChanged(joinState: JoinState, demuxId: number | undefined): void;
     handleNetworkRouteChanged(localNetworkAdapterType: NetworkAdapterType): void;
     handleAudioLevels(capturedLevel: RawAudioLevel, receivedLevels: Array<ReceivedAudioLevel>): void;
     handleRemoteDevicesChanged(remoteDeviceStates: Array<RemoteDeviceState>): void;
@@ -468,7 +474,7 @@ export interface CallManagerCallbacks {
     requestMembershipProof(clientId: GroupCallClientId): void;
     requestGroupMembers(clientId: GroupCallClientId): void;
     handleConnectionStateChanged(clientId: GroupCallClientId, connectionState: ConnectionState): void;
-    handleJoinStateChanged(clientId: GroupCallClientId, joinState: JoinState): void;
+    handleJoinStateChanged(clientId: GroupCallClientId, joinState: JoinState, demuxId: number | undefined): void;
     handleRemoteDevicesChanged(clientId: GroupCallClientId, remoteDeviceStates: Array<RemoteDeviceState>): void;
     handlePeekChanged(clientId: GroupCallClientId, info: PeekInfo): void;
     handlePeekResponse(request_id: number, info: PeekInfo): void;
