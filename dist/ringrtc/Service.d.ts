@@ -83,7 +83,7 @@ export declare class RingRTCType {
     receivedHttpResponse(requestId: number, status: number, body: Buffer): void;
     httpRequestFailed(requestId: number, debugInfo: string | undefined): void;
     getGroupCall(groupId: Buffer, sfuUrl: string, hkdfExtraInfo: Buffer, audioLevelsIntervalMillis: number | undefined, observer: GroupCallObserver): GroupCall | undefined;
-    peekGroupCall(sfu_url: string, membership_proof: Buffer, group_members: Array<GroupMemberInfo>): Promise<PeekInfo>;
+    peekGroupCall(sfuUrl: string, membershipProof: Buffer, groupMembers: Array<GroupMemberInfo>): Promise<PeekInfo>;
     requestMembershipProof(clientId: GroupCallClientId): void;
     requestGroupMembers(clientId: GroupCallClientId): void;
     handleConnectionStateChanged(clientId: GroupCallClientId, connectionState: ConnectionState): void;

@@ -502,11 +502,11 @@ class RingRTCType {
     }
     // Called by UX
     // Returns a list of user IDs
-    peekGroupCall(sfu_url, membership_proof, group_members) {
+    peekGroupCall(sfuUrl, membershipProof, groupMembers) {
         let [requestId, promise] = this._peekRequests.add();
         // Response comes back via handlePeekResponse
         silly_deadlock_protection(() => {
-            this.callManager.peekGroupCall(requestId, sfu_url, membership_proof, group_members);
+            this.callManager.peekGroupCall(requestId, sfuUrl, membershipProof, groupMembers);
         });
         return promise;
     }
