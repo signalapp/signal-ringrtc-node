@@ -261,7 +261,9 @@ class RingRTCType {
         // Temporary: Force hangup in all glare scenarios until handled gracefully.
         // In case of a glare loser, an incoming call will be generated right
         // after the outgoing call is ended. In that case, ignore it once.
-        if (this._call && this._call.endedReason === CallEndedReason.Glare) {
+        if (this._call &&
+            (this._call.endedReason === CallEndedReason.Glare ||
+                this._call.endedReason === CallEndedReason.ReCall)) {
             this._call.endedReason = undefined;
             // EVIL HACK: We are the "loser" of a glare collision and have ended the outgoing call
             // and are now receiving the incoming call from the remote side (the "winner").
@@ -322,7 +324,9 @@ class RingRTCType {
             // We're the "winner", so ignore the incoming call and keep going with the outgoing call.
             return;
         }
-        if (call && reason === CallEndedReason.Glare) {
+        if (call &&
+            (reason === CallEndedReason.Glare ||
+                reason === CallEndedReason.ReCall)) {
             // The current call is the outgoing call.
             // The ended call is the outgoing call.
             // We're the "loser", so end the outgoing/current call and wait for a new incoming call.
@@ -1425,10 +1429,12 @@ var CallEndedReason;
     CallEndedReason["Declined"] = "Declined";
     CallEndedReason["Busy"] = "Busy";
     CallEndedReason["Glare"] = "Glare";
+    CallEndedReason["ReCall"] = "ReCall";
     CallEndedReason["ReceivedOfferExpired"] = "ReceivedOfferExpired";
     CallEndedReason["ReceivedOfferWhileActive"] = "ReceivedOfferWhileActive";
     CallEndedReason["ReceivedOfferWithGlare"] = "ReceivedOfferWithGlare";
     CallEndedReason["SignalingFailure"] = "SignalingFailure";
+    CallEndedReason["GlareFailure"] = "GlareFailure";
     CallEndedReason["ConnectionFailure"] = "ConnectionFailure";
     CallEndedReason["InternalFailure"] = "InternalFailure";
     CallEndedReason["Timeout"] = "Timeout";
