@@ -38,10 +38,10 @@
   dependencies:
     regenerator-runtime "^0.13.4"
 
-"@electron/get@^1.13.0":
-  version "1.13.1"
-  resolved "https://registry.yarnpkg.com/@electron/get/-/get-1.13.1.tgz#42a0aa62fd1189638bd966e23effaebb16108368"
-  integrity sha512-U5vkXDZ9DwXtkPqlB45tfYnnYBN8PePp1z/XDCupnSpdrxT8/ThCv9WCwPLf9oqiSGZTkH6dx2jDUPuoXpjkcA==
+"@electron/get@^1.0.1":
+  version "1.14.1"
+  resolved "https://registry.yarnpkg.com/@electron/get/-/get-1.14.1.tgz#16ba75f02dffb74c23965e72d617adc721d27f40"
+  integrity sha512-BrZYyL/6m0ZXz/lDxy/nlVhQz+WF+iPS6qXolEU8atw7h6v1aYkjwJZ63m+bJMBTxDE66X+r2tPS4a/8C82sZw==
   dependencies:
     debug "^4.1.1"
     env-paths "^2.2.0"
@@ -906,12 +906,12 @@ electron-window@^0.8.0:
   dependencies:
     is-electron-renderer "^2.0.0"
 
-electron@15.3.2:
-  version "15.3.2"
-  resolved "https://registry.yarnpkg.com/electron/-/electron-15.3.2.tgz#4f0cbad781d14e0194f5dfef1709e09a70c8074a"
-  integrity sha512-sEpOX10gjAyvq33HDxJrq2HhYZT3qndZjUrHkzG16QTLjykP7lMvGnJ/bt6wn+T75f4wwv59FUbQx2hW3Xz5TQ==
+electron@13.6.6:
+  version "13.6.6"
+  resolved "https://registry.yarnpkg.com/electron/-/electron-13.6.6.tgz#ebd4754b2b55d54a2e8e9cdc3d0a2bb6b7053827"
+  integrity sha512-TP2Bl1nTxaH1yRmlYiF7imzvKE/NASE0cl6wOYA3AaP/UrBGc4L3NwJfn5Z55o+1t4TH8vCRxENufESyb32HhA==
   dependencies:
-    "@electron/get" "^1.13.0"
+    "@electron/get" "^1.0.1"
     "@types/node" "^14.6.2"
     extract-zip "^1.0.3"
 
