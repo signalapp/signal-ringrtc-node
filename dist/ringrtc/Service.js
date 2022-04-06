@@ -325,8 +325,7 @@ class RingRTCType {
             return;
         }
         if (call &&
-            (reason === CallEndedReason.Glare ||
-                reason === CallEndedReason.ReCall)) {
+            (reason === CallEndedReason.Glare || reason === CallEndedReason.ReCall)) {
             // The current call is the outgoing call.
             // The ended call is the outgoing call.
             // We're the "loser", so end the outgoing/current call and wait for a new incoming call.
@@ -346,7 +345,7 @@ class RingRTCType {
             if (this.handleAutoEndedIncomingCallRequest) {
                 this.handleAutoEndedIncomingCallRequest(remoteUserId, reason, ageSec, isVideoCall, receivedAtCounter);
             }
-            if (call && (call.state === CallState.Prering && call.isIncoming)) {
+            if (call && call.state === CallState.Prering && call.isIncoming) {
                 // Set the state to Ended without triggering a state update since we
                 // already notified the client.
                 call.endedReason = reason;

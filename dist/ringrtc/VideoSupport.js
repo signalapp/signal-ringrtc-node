@@ -24,25 +24,25 @@ var VideoPixelFormatEnum;
 function videoPixelFormatFromEnum(format) {
     switch (format) {
         case VideoPixelFormatEnum.I420: {
-            return "I420";
+            return 'I420';
         }
         case VideoPixelFormatEnum.Nv12: {
-            return "NV12";
+            return 'NV12';
         }
         case VideoPixelFormatEnum.Rgba: {
-            return "RGBA";
+            return 'RGBA';
         }
     }
 }
 function videoPixelFormatToEnum(format) {
     switch (format) {
-        case "I420": {
+        case 'I420': {
             return VideoPixelFormatEnum.I420;
         }
-        case "NV12": {
+        case 'NV12': {
             return VideoPixelFormatEnum.Nv12;
         }
-        case "RGBA": {
+        case 'RGBA': {
             return VideoPixelFormatEnum.Rgba;
         }
     }
@@ -172,7 +172,9 @@ class GumVideoCapturer {
                     return;
                 }
                 this.mediaStream = mediaStream;
-                if (!this.spawnedSenderRunning && this.mediaStream != undefined && this.sender != undefined) {
+                if (!this.spawnedSenderRunning &&
+                    this.mediaStream != undefined &&
+                    this.sender != undefined) {
                     this.spawnSender(this.mediaStream, this.sender);
                 }
                 this.updateLocalPreviewSourceObject();
@@ -221,7 +223,9 @@ class GumVideoCapturer {
         if (track == undefined || this.spawnedSenderRunning) {
             return;
         }
-        const reader = (new MediaStreamTrackProcessor({ track })).readable.getReader();
+        const reader = new MediaStreamTrackProcessor({
+            track,
+        }).readable.getReader();
         const buffer = Buffer.alloc(exports.MAX_VIDEO_CAPTURE_BUFFER_SIZE);
         this.spawnedSenderRunning = true;
         (() => __awaiter(this, void 0, void 0, function* () {
@@ -236,7 +240,7 @@ class GumVideoCapturer {
                         continue;
                     }
                     try {
-                        const format = videoPixelFormatToEnum((_a = frame.format) !== null && _a !== void 0 ? _a : "I420");
+                        const format = videoPixelFormatToEnum((_a = frame.format) !== null && _a !== void 0 ? _a : 'I420');
                         if (format == undefined) {
                             console.warn(`Unsupported video frame format: ${frame.format}`);
                             break;
@@ -245,7 +249,7 @@ class GumVideoCapturer {
                         sender.sendVideoFrame(frame.codedWidth, frame.codedHeight, format, buffer);
                     }
                     finally {
-                        // This must be called for more frames to come.  
+                        // This must be called for more frames to come.
                         frame.close();
                     }
                 }
