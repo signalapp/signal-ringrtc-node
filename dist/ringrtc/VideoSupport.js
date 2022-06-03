@@ -14,6 +14,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CanvasVideoRenderer = exports.MAX_VIDEO_CAPTURE_BUFFER_SIZE = exports.MAX_VIDEO_CAPTURE_AREA = exports.MAX_VIDEO_CAPTURE_HEIGHT = exports.MAX_VIDEO_CAPTURE_WIDTH = exports.GumVideoCapturer = exports.GumVideoCaptureOptions = exports.VideoPixelFormatEnum = void 0;
+const index_1 = require("../index");
 // Given a weird name to not conflict with WebCodec's VideoPixelFormat
 var VideoPixelFormatEnum;
 (function (VideoPixelFormatEnum) {
@@ -152,8 +153,10 @@ class GumVideoCapturer {
     startCapturing(options) {
         return __awaiter(this, void 0, void 0, function* () {
             if (this.capturing()) {
+                index_1.RingRTC.logWarn('startCapturing(): already capturing');
                 return;
             }
+            index_1.RingRTC.logInfo(`startCapturing(): ${options.maxWidth}x${options.maxHeight}@${options.maxFramerate}`);
             this.captureOptions = options;
             try {
                 // If we start/stop/start, we may have concurrent calls to getUserMedia,
@@ -165,6 +168,7 @@ class GumVideoCapturer {
                 // switched to a different camera while awaiting a response, in
                 // which case we need to disable the camera we just accessed.
                 if (this.captureOptions != options) {
+                    index_1.RingRTC.logWarn('startCapturing(): different state after getUserMedia()');
                     for (const track of mediaStream.getVideoTracks()) {
                         // Make the light turn off faster
                         track.stop();
@@ -180,6 +184,7 @@ class GumVideoCapturer {
                 this.updateLocalPreviewSourceObject();
             }
             catch (e) {
+                index_1.RingRTC.logError(`startCapturing(): ${e}`);
                 // It's possible video was disabled, switched to screenshare, or
                 // switched to a different camera while awaiting a response, in
                 // which case we should reset the captureOptions if we set them.
@@ -242,17 +247,23 @@ class GumVideoCapturer {
                     try {
                         const format = videoPixelFormatToEnum((_a = frame.format) !== null && _a !== void 0 ? _a : 'I420');
                         if (format == undefined) {
-                            console.warn(`Unsupported video frame format: ${frame.format}`);
+                            index_1.RingRTC.logWarn(`Unsupported video frame format: ${frame.format}`);
                             break;
                         }
                         frame.copyTo(buffer);
                         sender.sendVideoFrame(frame.codedWidth, frame.codedHeight, format, buffer);
+                    }
+                    catch (e) {
+                        index_1.RingRTC.logError(`sendVideoFrame(): ${e}`);
                     }
                     finally {
                         // This must be called for more frames to come.
                         frame.close();
                     }
                 }
+            }
+            catch (e) {
+                index_1.RingRTC.logError(`spawnSender(): ${e}`);
             }
             finally {
                 reader.releaseLock();
