@@ -271,6 +271,7 @@ export declare class RemoteDeviceState {
     addedTime: string | undefined;
     speakerTime: string | undefined;
     forwardingVideo: boolean | undefined;
+    clientDecodedHeight: number | undefined;
     constructor(demuxId: number, userId: Buffer, mediaKeysReceived: boolean);
 }
 export declare class GroupMemberInfo {
