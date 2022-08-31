@@ -1244,8 +1244,8 @@ class GroupCall {
         this._callManager.setBandwidthMode(this._clientId, bandwidthMode);
     }
     // Called by UI
-    requestVideo(resolutions) {
-        this._callManager.requestVideo(this._clientId, resolutions);
+    requestVideo(resolutions, activeSpeakerHeight) {
+        this._callManager.requestVideo(this._clientId, resolutions, activeSpeakerHeight);
     }
     // Called by UI
     setGroupMembers(members) {

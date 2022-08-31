@@ -318,7 +318,7 @@ export declare class GroupCall {
     ringAll(): void;
     resendMediaKeys(): void;
     setBandwidthMode(bandwidthMode: BandwidthMode): void;
-    requestVideo(resolutions: Array<VideoRequest>): void;
+    requestVideo(resolutions: Array<VideoRequest>, activeSpeakerHeight: number): void;
     setGroupMembers(members: Array<GroupMemberInfo>): void;
     setMembershipProof(proof: Buffer): void;
     requestMembershipProof(): void;
@@ -445,7 +445,7 @@ export interface CallManager {
     groupRing(clientId: GroupCallClientId, recipient: Buffer | undefined): void;
     resendMediaKeys(clientId: GroupCallClientId): void;
     setBandwidthMode(clientId: GroupCallClientId, bandwidthMode: BandwidthMode): void;
-    requestVideo(clientId: GroupCallClientId, resolutions: Array<VideoRequest>): void;
+    requestVideo(clientId: GroupCallClientId, resolutions: Array<VideoRequest>, activeSpeakerHeight: number): void;
     setGroupMembers(clientId: GroupCallClientId, members: Array<GroupMemberInfo>): void;
     setMembershipProof(clientId: GroupCallClientId, proof: Buffer): void;
     receiveGroupCallVideoFrame(clientId: GroupCallClientId, remoteDemuxId: number, buffer: Buffer): [number, number] | undefined;
