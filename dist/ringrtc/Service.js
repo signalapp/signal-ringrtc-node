@@ -1146,6 +1146,7 @@ class RemoteDeviceState {
         this.userId = userId;
         this.mediaKeysReceived = mediaKeysReceived;
         this.audioLevel = 0;
+        this.isHigherResolutionPending = false;
     }
 }
 exports.RemoteDeviceState = RemoteDeviceState;
