@@ -197,8 +197,10 @@ class GumVideoCapturer {
     }
     stopCapturing() {
         if (!this.capturing()) {
+            index_1.RingRTC.logWarn('stopCapturing(): not capturing');
             return;
         }
+        index_1.RingRTC.logInfo('stopCapturing()');
         this.captureOptions = undefined;
         if (!!this.mediaStream) {
             for (const track of this.mediaStream.getVideoTracks()) {
