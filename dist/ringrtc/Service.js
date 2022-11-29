@@ -343,7 +343,7 @@ class RingRTCType {
             reason === CallEndedReason.ReceivedOfferExpired ||
             (call.state === CallState.Prering && call.isIncoming)) {
             if (this.handleAutoEndedIncomingCallRequest) {
-                this.handleAutoEndedIncomingCallRequest(remoteUserId, reason, ageSec, isVideoCall, receivedAtCounter);
+                this.handleAutoEndedIncomingCallRequest(callId, remoteUserId, reason, ageSec, isVideoCall, receivedAtCounter);
             }
             if (call && call.state === CallState.Prering && call.isIncoming) {
                 // Set the state to Ended without triggering a state update since we

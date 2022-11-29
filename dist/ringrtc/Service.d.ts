@@ -51,7 +51,7 @@ export declare class RingRTCType {
     private getCallInfoKey;
     handleOutgoingSignaling: ((remoteUserId: UserId, message: CallingMessage) => Promise<boolean>) | null;
     handleIncomingCall: ((call: Call) => Promise<CallSettings | null>) | null;
-    handleAutoEndedIncomingCallRequest: ((remoteUserId: UserId, reason: CallEndedReason, ageSec: number, wasVideoCall: boolean, receivedAtCounter: number | undefined) => void) | null;
+    handleAutoEndedIncomingCallRequest: ((callId: CallId, remoteUserId: UserId, reason: CallEndedReason, ageSec: number, wasVideoCall: boolean, receivedAtCounter: number | undefined) => void) | null;
     handleLogMessage: ((level: CallLogLevel, fileName: string, line: number, message: string) => void) | null;
     handleSendHttpRequest: ((requestId: number, url: string, method: HttpMethod, headers: {
         [name: string]: string;
