@@ -29,7 +29,7 @@
     "@types/react": "16.8.5",
     "chai": "4.3.5",
     "chai-as-promised": "^7.1.1",
-    "electron": "15.3.2",
+    "electron": "22.3.21",
     "electron-mocha": "11.0.2",
     "eslint": "7.32.0",
     "eslint-config-airbnb-typescript-prettier": "4.2.0",
